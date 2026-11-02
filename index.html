@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Giải Điền Kinh Chuyên Nghiệp</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (XLSX) Library for Spreadsheet Import/Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        @media print {
+            body * { visibility: hidden; }
+            #printableArea, #printableArea * { visibility: visible; }
+            #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-blue-700 text-white shadow-md no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-blue-700 p-3 rounded-xl shadow font-bold text-2xl">
+                    <i class="fa-solid fa-person-running"></i>
+                </div>
+                <div>
+                    <h1 id="headerTourName" class="text-xl md:text-2xl font-bold tracking-tight">Giải Điền Kinh Học Sinh Truyền Thống Năm 2026</h1>
+                    <p id="headerTourInfo" class="text-blue-100 text-xs md:text-sm flex flex-wrap items-center gap-3 mt-0.5">
+                        <span><i class="fa-regular fa-calendar mr-1"></i> 10/06/2026</span>
+                        <span><i class="fa-solid fa-location-dot mr-1"></i> Sân vận động Trung tâm</span>
+                        <span class="bg-blue-800 px-2 py-0.5 rounded text-xs font-semibold" id="headerTrackLanes">Sân 8 làn chuẩn</span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="syncFromGoogleSheet(false)" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-lg font-semibold transition border border-blue-400 flex items-center gap-1.5 shadow-sm" title="Cập nhật dữ liệu mới nhất từ hệ thống">
+                    <i class="fa-solid fa-arrows-rotate"></i> Làm mới dữ liệu
+                </button>
+                <button onclick="switchTab('config')" id="btnHeaderConfig" class="bg-blue-800 hover:bg-blue-900 text-xs px-3 py-2 rounded-lg font-medium transition border border-blue-500 flex items-center gap-1.5 admin-only-action">
+                    <i class="fa-solid fa-gear"></i> Cấu hình & Trang tính
+                </button>
+                <button onclick="syncToGoogleSheet(false)" class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-3 py-2 rounded-lg font-semibold transition flex items-center gap-1.5 shadow-sm admin-only-action" title="Lưu dữ liệu trực tiếp lên Google Trang tính">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Lưu lên Google Sheet
+                </button>
+                <button onclick="exportDataExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-excel"></i> Xuất Trang tính (.xlsx)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto space-x-1 md:space-x-4 py-2 justify-between items-center">
+            <div class="flex overflow-x-auto space-x-1 md:space-x-4">
+                <button onclick="switchTab('athletes')" id="btn-athletes" class="tab-btn px-3.5 py-2 font-semibold text-sm rounded-xl whitespace-nowrap flex items-center gap-2 text-blue-600 bg-blue-50 transition">
+                    <i class="fa-solid fa-users"></i> 1. Danh sách VĐV
+                </button>
+                <button onclick="switchTab('schedule')" id="btn-schedule" class="tab-btn px-3.5 py-2 font-semibold text-sm rounded-xl whitespace-nowrap flex items-center gap-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition">
+                    <i class="fa-solid fa-calendar-days"></i> 2. Lịch thi đấu
+                </button>
+                <button onclick="switchTab('draw')" id="btn-draw" class="tab-btn px-3.5 py-2 font-semibold text-sm rounded-xl whitespace-nowrap flex items-center gap-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition viewer-hide-draw">
+                    <i class="fa-solid fa-shuffle"></i> 3. Bốc thăm đợt & Ô chạy
+                </button>
+                <button onclick="switchTab('results')" id="btn-results" class="tab-btn px-3.5 py-2 font-semibold text-sm rounded-xl whitespace-nowrap flex items-center gap-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition">
+                    <i class="fa-solid fa-stopwatch"></i> <span id="resultsTabLabel">4. Nhập thành tích & Xếp hạng</span>
+                </button>
+                <button onclick="switchTab('config')" id="btn-config" class="tab-btn px-3.5 py-2 font-semibold text-sm rounded-xl whitespace-nowrap flex items-center gap-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition admin-only-action">
+                    <i class="fa-solid fa-sliders"></i> 5. Cấu hình giải đấu
+                </button>
+            </div>
+            <!-- Phân quyền tài khoản đang đăng nhập -->
+            <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                <div id="userRoleBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-blue-600 text-white">Admin</div>
+                <span id="userNameDisplay" class="text-xs font-semibold text-slate-700 hidden sm:inline">Quản trị viên</span>
+                <button onclick="openLoginModal()" class="text-xs text-blue-600 hover:text-blue-800 font-bold underline ml-1">Đổi quyền</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- TAB 1: DANH SÁCH VĐV & BIB -->
+        <section id="tab-athletes" class="tab-content active space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Quản lý Vận động viên (BIB, CCCD, Đơn vị, Lớp)</h2>
+                    <p class="text-sm text-slate-500">Quản lý hồ sơ VĐV với mã định danh CCCD 12 số, phân tách rõ Đơn vị và Lớp.</p>
+                </div>
+                <div class="flex flex-wrap gap-2 admin-only-action">
+                    <button onclick="openAthleteModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus"></i> Thêm VĐV mới
+                    </button>
+                    <button onclick="openBulkImportModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2">
+                        <i class="fa-solid fa-paste"></i> Nhập nhanh danh sách
+                    </button>
+                    <label class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer transition flex items-center gap-2">
+                        <i class="fa-solid fa-file-excel"></i> Nhập từ Trang tính (.xlsx)
+                        <input type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="importDataExcel(event)">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Bộ lọc VĐV -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-center">
+                <div class="lg:col-span-2 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                    <input type="text" id="searchAthlete" oninput="renderAthletes()" placeholder="Tìm theo Tên, Số BIB, hoặc CCCD (12 số)..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <select id="filterUnit" onchange="onFilterUnitChange()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Tất cả Đơn vị</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="filterClass" onchange="renderAthletes()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Tất cả Lớp</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="filterEvent" onchange="renderAthletes()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Tất cả Nội dung</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Bảng danh sách VĐV -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs font-semibold text-slate-600">
+                    <span id="athleteCountLabel">Tổng số: 0 VĐV</span>
+                    <div class="flex items-center gap-2">
+                        <span>Lọc giới tính:</span>
+                        <select id="filterGender" onchange="renderAthletes()" class="px-2 py-1 border border-slate-300 rounded bg-white text-slate-700">
+                            <option value="">Tất cả</option>
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                                <th class="p-3.5 w-14 text-center">STT</th>
+                                <th class="p-3.5 w-20 text-center">Số BIB</th>
+                                <th class="p-3.5">Họ và tên VĐV</th>
+                                <th class="p-3.5">CCCD (12 số)</th>
+                                <th class="p-3.5 text-center">Giới tính</th>
+                                <th class="p-3.5">Đơn vị</th>
+                                <th class="p-3.5">Lớp</th>
+                                <th class="p-3.5">Nội dung đăng ký</th>
+                                <th class="p-3.5 text-center w-24 admin-only-column">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="athleteTableBody" class="divide-y divide-slate-100">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="athleteEmptyState" class="p-8 text-center text-slate-400 hidden">
+                    Không tìm thấy vận động viên nào phù hợp với bộ lọc.
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: LỊCH THI ĐẤU -->
+        <section id="tab-schedule" class="tab-content space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Lịch thi đấu các nội dung</h2>
+                    <p class="text-sm text-slate-500">Quản lý thời gian, sân bãi, vòng thi đấu (Vòng loại, Chung kết) và tiến độ giải.</p>
+                </div>
+                <button onclick="openScheduleModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2 admin-only-action">
+                    <i class="fa-solid fa-plus"></i> Thêm lịch thi đấu
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="scheduleCardContainer">
+                <!-- Rendered by JS -->
+            </div>
+        </section>
+
+        <!-- TAB 3: BỐC THĂM ĐỢT, Ô CHẠY (SEEDING) -->
+        <section id="tab-draw" class="tab-content space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 no-print">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Bốc thăm đợt chạy & Xếp ô/làn chạy (Seeding)</h2>
+                        <p class="text-sm text-slate-500">Hỗ trợ tuỳ chọn chỉ bốc thăm đợt hoặc vừa chia đợt vừa xếp ô, có tách Đơn vị/Lớp.</p>
+                    </div>
+                    <button onclick="printDrawSheet()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-print"></i> In biên bản bốc thăm (Heat Sheet)
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">1. Chọn nội dung thi đấu:</label>
+                        <select id="drawEventSelect" onchange="onSelectDrawEvent()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                            <!-- Options -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">2. Chọn vòng thi đấu:</label>
+                        <select id="drawRoundSelect" onchange="renderDrawResultsDisplay()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                            <option value="Vòng loại">Vòng loại</option>
+                            <option value="Chung kết">Chung kết</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">3. Chế độ bốc thăm:</label>
+                        <select id="drawModeSelect" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="heat_and_lane">Bốc thăm chia đợt & xếp ô chạy</option>
+                            <option value="heat_only">Chỉ bốc thăm đợt chạy / thứ tự</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col justify-end admin-only-action">
+                        <button onclick="performDraw()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-dice"></i> Tiến hành Bốc thăm
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
+                    <label class="flex items-center gap-2.5 cursor-pointer select-none bg-blue-50/80 border border-blue-200 px-3.5 py-2 rounded-lg admin-only-action">
+                        <input type="checkbox" id="avoidSameUnit" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" checked>
+                        <span class="text-xs font-semibold text-blue-900">Tích chọn chia Đơn vị / Lớp (Không xếp VĐV cùng Đơn vị hoặc cùng Lớp chạy chung đợt nếu có thể)</span>
+                    </label>
+                    <div id="drawInfoNotice" class="text-xs text-slate-600 font-medium"></div>
+                </div>
+            </div>
+
+            <!-- Khu vực hiển thị kết quả bốc thăm & In ấn -->
+            <div id="printableArea" class="space-y-4">
+                <div class="hidden print:block text-center mb-6 border-b pb-4">
+                    <h2 id="printTourTitle" class="text-base font-bold uppercase text-slate-700"></h2>
+                    <h1 class="text-xl font-bold uppercase mt-1">DANH SÁCH BỐC THĂM ĐỢT & Ô CHẠY (START LIST)</h1>
+                    <p id="printSubTitle" class="text-sm font-semibold text-slate-600 mt-1"></p>
+                </div>
+                <div id="drawResultContainer" class="space-y-4">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: NHẬP THÀNH TÍCH & KẾT QUẢ / XẾP HẠNG -->
+        <section id="tab-results" class="tab-content space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
+                    <div>
+                        <h2 id="resHeaderTitle" class="text-lg font-bold text-slate-800 mb-1">Nhập thành tích Chạy, Nhảy, Đẩy & Xếp hạng</h2>
+                        <p id="resHeaderDesc" class="text-sm text-slate-500">Nhập kết quả thi đấu, tự động xếp hạng và lập danh sách Vòng Chung kết theo chuẩn Seeding.</p>
+                    </div>
+                    <div id="publishControlContainer" class="hidden">
+                        <!-- Rendered by JS for Admin publication -->
+                    </div>
+                </div>
+
+                <div id="refereePermissionNotice" class="p-3 mb-4 rounded-xl text-xs bg-amber-50 border border-amber-200 text-amber-900 hidden"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 items-end">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Chọn nội dung cần xem/nhập:</label>
+                        <select id="resEventSelect" onchange="onSelectResEvent()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                            <!-- Options -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Chọn vòng thi đấu:</label>
+                        <select id="resRoundSelect" onchange="onSelectResRound()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                            <option value="Vòng loại">Vòng loại</option>
+                            <option value="Chung kết">Chung kết</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end admin-referee-action">
+                        <button id="saveResultBtn" onclick="saveResultsData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Lưu thành tích & Xếp hạng
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Khung cấu hình tự động lập danh sách Chung kết (Hiện khi đang ở Vòng loại cho Admin/Trọng tài) -->
+                <div id="finalQualificationBox" class="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 admin-referee-action">
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" id="autoAdvanceCheck" class="w-5 h-5 mt-0.5 text-blue-600 rounded border-amber-400 focus:ring-blue-500" checked>
+                        <div>
+                            <label for="autoAdvanceCheck" class="text-sm font-bold text-amber-900 cursor-pointer">Tự động lập danh sách vào Vòng Chung kết & xếp ô chạy dựa vào thành tích Vòng loại</label>
+                            <p class="text-xs text-amber-800 mt-0.5">VĐV có thành tích tốt nhất vòng loại sẽ được xếp vào các ô chạy trung tâm ở Chung kết.</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+                        <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-amber-300">
+                            <label class="text-xs font-semibold text-slate-700 whitespace-nowrap">Số lượng vào CK:</label>
+                            <input type="number" id="topCountInput" value="8" min="2" max="16" class="w-14 text-center font-bold text-sm text-blue-700 focus:outline-none">
+                        </div>
+                        <button onclick="generateFinalRoundManual()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Lập DS Chung kết & Xếp ô ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bảng danh sách thành tích (Chỉ Admin/Trọng tài nhập liệu, Khán giả chỉ xem nếu nội dung đã có kết quả) -->
+            <div id="resultInputCardWrapper" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-4 bg-slate-100 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <h3 class="font-bold text-slate-800 text-sm" id="resTableTitle">Danh sách thành tích VĐV</h3>
+                    <span class="text-xs text-slate-500" id="resTableHint">Trạng thái kết quả thi đấu</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs">
+                                <th class="p-3 w-16 text-center">BIB</th>
+                                <th class="p-3">Họ và tên VĐV</th>
+                                <th class="p-3">CCCD</th>
+                                <th class="p-3">Đơn vị</th>
+                                <th class="p-3">Lớp</th>
+                                <th class="p-3 text-center">Đợt / Ô</th>
+                                <th class="p-3 w-48">Thành tích (<span id="unitLabel">giây</span>)</th>
+                                <th class="p-3 w-32">Trạng thái</th>
+                                <th class="p-3 w-20 text-center">Hạng</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultTableBody" class="divide-y divide-slate-100">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Bảng Xếp Hạng Nội Dung & Bảng Tổng Sắp Toàn Đoàn -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Bảng xếp hạng nội dung -->
+                <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-4 bg-emerald-50 border-b border-emerald-100 flex justify-between items-center">
+                        <h3 class="font-bold text-emerald-900 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-medal text-emerald-600"></i> Bảng Xếp Hạng Nội Dung Đang Chọn
+                        </h3>
+                        <span id="rankStatusBadge" class="text-xs bg-emerald-200 text-emerald-900 px-2.5 py-0.5 rounded-full font-semibold">Chính thức</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs">
+                                    <th class="p-3 w-14 text-center">Hạng</th>
+                                    <th class="p-3 w-16 text-center">BIB</th>
+                                    <th class="p-3">Họ và tên</th>
+                                    <th class="p-3">Đơn vị / Lớp</th>
+                                    <th class="p-3 text-center">Thành tích</th>
+                                    <th class="p-3 text-center">Kết quả</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rankingTableBody" class="divide-y divide-slate-100">
+                                <!-- Rendered by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Bảng tổng sắp huy chương & điểm toàn đoàn -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-4 bg-indigo-50 border-b border-indigo-100 flex justify-between items-center">
+                        <h3 class="font-bold text-indigo-900 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-500"></i> Tổng Sắp Toàn Đoàn (Chung Kết)
+                        </h3>
+                        <select id="standingsGroupSelect" onchange="renderTeamStandings()" class="text-xs border border-indigo-200 rounded px-2 py-1 bg-white text-indigo-900 font-semibold">
+                            <option value="unit">Theo Đơn vị</option>
+                            <option value="className">Theo Lớp</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                                    <th class="p-2.5 text-center">#</th>
+                                    <th class="p-2.5">Đơn vị / Lớp</th>
+                                    <th class="p-2.5 text-center text-amber-600" title="Huy chương Vàng">Vàng</th>
+                                    <th class="p-2.5 text-center text-slate-500" title="Huy chương Bạc">Bạc</th>
+                                    <th class="p-2.5 text-center text-orange-700" title="Huy chương Đồng">Đồng</th>
+                                    <th class="p-2.5 text-center font-bold text-blue-700">Điểm</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teamStandingsBody" class="divide-y divide-slate-100">
+                                <!-- Rendered by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: CẤU HÌNH GIẢI ĐẤU -->
+        <section id="tab-config" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Thông tin chung & Thông số sân bãi -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                    <h3 class="font-bold text-slate-800 text-base flex items-center gap-2 border-b pb-3">
+                        <i class="fa-solid fa-sliders text-blue-600"></i> 1. Thông tin giải đấu & Thông số sân bãi
+                    </h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Tên giải đấu (hiển thị trên Header & Phiếu in):</label>
+                            <input type="text" id="cfgTourName" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Ngày / Thời gian tổ chức:</label>
+                                <input type="text" id="cfgTourDate" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Địa điểm tổ chức:</label>
+                                <input type="text" id="cfgTourLocation" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Số làn chạy tiêu chuẩn của sân:</label>
+                                <select id="cfgTrackLanes" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="4">Sân tiêu chuẩn 4 làn chạy</option>
+                                    <option value="6">Sân tiêu chuẩn 6 làn chạy</option>
+                                    <option value="8">Sân tiêu chuẩn 8 làn chạy</option>
+                                    <option value="10">Sân tiêu chuẩn 10 làn chạy</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Số VĐV mặc định vào Chung kết:</label>
+                                <input type="number" id="cfgDefaultFinalists" min="4" max="20" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold text-slate-700">
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="font-bold text-slate-800 text-base flex items-center gap-2 border-b pb-3 pt-4">
+                        <i class="fa-solid fa-star text-amber-500"></i> 2. Quy định tính điểm toàn đoàn (Hạng 1 đến Hạng 10)
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-amber-700 mb-1">Hạng 1 (HCV):</label>
+                            <input type="number" id="cfgPts1" min="0" class="w-full px-2.5 py-2 border border-amber-300 bg-amber-50/40 rounded-lg text-sm font-bold text-center text-amber-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Hạng 2 (HCB):</label>
+                            <input type="number" id="cfgPts2" min="0" class="w-full px-2.5 py-2 border border-slate-300 bg-slate-50 rounded-lg text-sm font-bold text-center text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-orange-800 mb-1">Hạng 3 (HCĐ):</label>
+                            <input type="number" id="cfgPts3" min="0" class="w-full px-2.5 py-2 border border-orange-300 bg-orange-50/30 rounded-lg text-sm font-bold text-center text-orange-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Hạng 4:</label>
+                            <input type="number" id="cfgPts4" min="0" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm font-bold text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Hạng 5:</label>
+                            <input type="number" id="cfgPts5" min="0" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm font-bold text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Hạng 6:</label>
+                            <input type="number" id="cfgPts6" min="0" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm font-bold text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Hạng 7:</label>
+                            <input type="number" id="cfgPts7" min="0" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm font-bold text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Hạng 8:</label>
+                            <input type="number" id="cfgPts8" min="0" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm font-bold text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Hạng 9:</label>
+                            <input type="number" id="cfgPts9" min="0" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm font-bold text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Hạng 10:</label>
+                            <input type="number" id="cfgPts10" min="0" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm font-bold text-center">
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex justify-end">
+                        <button onclick="saveTournamentConfig()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-check"></i> Lưu cấu hình giải đấu
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Danh mục Đơn vị, Lớp & Sao lưu khôi phục -->
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                        <div class="flex justify-between items-center border-b pb-3">
+                            <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                                <i class="fa-solid fa-building-flag text-indigo-600"></i> 3. Danh mục Đơn vị & Lớp tương ứng
+                            </h3>
+                            <button onclick="downloadSampleExcelTemplate()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                                <i class="fa-solid fa-table-list"></i> Tạo & Tải Trang tính mẫu (.xlsx)
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-500">Thiết lập từng Đơn vị (VD: Cụm_01) đi kèm danh sách các Lớp trực thuộc (VD: 10A1, 10A2, 10A3).</p>
+                        
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tên Đơn vị:</label>
+                                    <input type="text" id="newUnitNameInput" placeholder="VD: Cụm_01" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-semibold">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Danh sách Lớp (cách nhau dấu phẩy):</label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="newUnitClassesInput" placeholder="VD: 10A1, 10A2, 10A3" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                        <button onclick="addOrUpdateUnitMapping()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 shadow-sm">
+                                            <i class="fa-solid fa-plus"></i> Thêm / Cập nhật
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Danh sách các Đơn vị & Lớp hiển thị trực quan -->
+                        <div class="space-y-2 max-h-52 overflow-y-auto pr-1" id="unitClassMappingContainer">
+                            <!-- Rendered by JS -->
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-100">
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Chế độ nhập nhanh (<code class="text-indigo-700 font-bold">Cụm_01: 10A1, 10A2</code>):</label>
+                            <textarea id="cfgUnitClassBulkText" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cụm_01: 10A1, 10A2, 10A3&#10;Cụm_02: 11B1, 11B2, 11B3"></textarea>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button onclick="saveUnitClassFromTextarea()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                                <i class="fa-solid fa-floppy-disk"></i> Cập nhật danh mục
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                        <div class="flex justify-between items-center border-b pb-3">
+                            <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                                <i class="fa-solid fa-table text-emerald-600"></i> 4. Lưu trữ dữ liệu trên Trang tính
+                            </h3>
+                            <span id="sheetSyncStatus" class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">Chưa kết nối Cloud</span>
+                        </div>
+                        <p class="text-xs text-slate-500">Quản lý và lưu trữ dữ liệu giải đấu bằng Google Sheets hoặc file Excel (.xlsx).</p>
+
+                        <!-- Kết nối Google Trang tính -->
+                        <div class="bg-emerald-50/70 p-4 rounded-xl border border-emerald-200 space-y-3">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <label class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-cloud text-emerald-600"></i> Liên kết Google Trang tính (Web App URL):
+                                </label>
+                                <button onclick="openGoogleSheetGuideModal()" class="text-xs text-blue-600 hover:text-blue-800 font-semibold underline flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-question"></i> Hướng dẫn kết nối
+                                </button>
+                            </div>
+                            <input type="url" id="cfgGoogleSheetUrl" placeholder="Dán đường dẫn Web App Google Apps Script..." class="w-full px-3 py-2 border border-emerald-300 rounded-lg text-xs bg-white focus:outline-none font-mono">
+                            <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                                <label class="flex items-center gap-2 cursor-pointer select-none">
+                                    <input type="checkbox" id="cfgAutoSyncSheet" onchange="toggleAutoSyncSheet()" class="w-4 h-4 text-emerald-600 rounded border-emerald-300">
+                                    <span class="text-xs font-semibold text-emerald-900">Tự động lưu lên Google Trang tính</span>
+                                </label>
+                                <div class="flex flex-wrap gap-2">
+                                    <button onclick="syncFromGoogleSheet()" class="bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                                        <i class="fa-solid fa-cloud-arrow-down"></i> Tải về
+                                    </button>
+                                    <button onclick="syncToGoogleSheet(false)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i> Lưu lên Sheet
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Thêm/Sửa VĐV -->
+    <div id="athleteModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="athleteModalTitle" class="font-bold text-lg text-slate-800">Thêm vận động viên mới</h3>
+                <button onclick="closeAthleteModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <input type="hidden" id="editAthleteId">
+            <div id="athleteModalError" class="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-medium hidden"></div>
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Số BIB:</label>
+                        <input type="text" id="modalBib" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold text-blue-700 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Giới tính:</label>
+                        <select id="modalGender" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none">
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Họ và tên VĐV:</label>
+                    <input type="text" id="modalName" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none" placeholder="Nguyễn Văn A">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Số CCCD (Bắt buộc đúng 12 chữ số):</label>
+                    <input type="text" id="modalCccd" maxlength="12" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none" placeholder="068208001234">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Đơn vị:</label>
+                        <input type="text" id="modalUnit" list="unitSuggestions" oninput="updateModalClassSuggestions()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none bg-white" placeholder="Cụm_01">
+                        <datalist id="unitSuggestions"></datalist>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Lớp:</label>
+                        <input type="text" id="modalClass" list="classSuggestions" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none bg-white" placeholder="10A1">
+                        <datalist id="classSuggestions"></datalist>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nội dung đăng ký:</label>
+                    <select id="modalEvent" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none"></select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button onclick="closeAthleteModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition">Hủy</button>
+                <button onclick="saveAthlete()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition shadow-sm">Lưu thông tin</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Đăng nhập / Chọn Phân quyền -->
+    <div id="loginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-blue-600"></i> Đăng nhập hệ thống Phân quyền
+                </h3>
+                <button onclick="closeLoginModalIfAllowed()" class="text-slate-400 hover:text-slate-600" id="closeLoginBtn"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Chọn vai trò truy cập:</label>
+                    <select id="loginRoleSelect" onchange="onChangeLoginRole()" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white font-bold text-blue-700 focus:outline-none">
+                        <option value="admin">Quản trị viên (Admin - Toàn quyền)</option>
+                        <option value="referee">Trọng tài (Chỉ nhập kết quả nội dung được giao)</option>
+                        <option value="viewer">Khán giả / Người xem (Xem DS, Lịch, Bốc thăm & Kết quả)</option>
+                    </select>
+                </div>
+
+                <div id="refereeEventBox" class="space-y-2 hidden p-3 bg-blue-50/70 rounded-xl border border-blue-200">
+                    <label class="block text-xs font-semibold text-blue-900">Chọn nội dung bạn phụ trách chấm điểm:</label>
+                    <select id="loginRefereeEvent" class="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm bg-white font-medium text-blue-800 focus:outline-none">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Mật khẩu xác thực (Mặc định Admin: <code class="text-blue-600 font-bold">admin123</code>, Trọng tài: <code class="text-amber-600 font-bold">tt123</code>):</label>
+                    <input type="password" id="loginPasswordInput" placeholder="Khán giả không cần nhập mật khẩu..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button onclick="confirmLoginRole()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition shadow-sm">Xác nhận đăng nhập</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nhập nhanh VĐV -->
+    <div id="bulkImportModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-lg text-slate-800">Nhập nhanh danh sách VĐV</h3>
+                <button onclick="closeBulkImportModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3">
+                <p class="text-xs text-slate-600">Cú pháp mỗi dòng: <code class="bg-slate-100 px-1 py-0.5 rounded font-bold text-blue-700">BIB | Họ tên | CCCD (12 số) | Giới tính | Đơn vị | Lớp</code></p>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nội dung thi đấu:</label>
+                    <select id="bulkEventSelect" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium"></select>
+                </div>
+                <textarea id="bulkTextInput" rows="6" class="w-full p-3 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none" placeholder="201 | Nguyễn Minh Khôi | 079208001234 | Nam | Cụm_01 | 10A1&#10;202 | Trần Quốc Bảo | 079208005678 | Nam | Cụm_02 | 11B1"></textarea>
+            </div>
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button onclick="closeBulkImportModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl">Đóng</button>
+                <button onclick="processBulkImport()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm">Nhập vào danh sách</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Thêm Lịch -->
+    <div id="scheduleModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-lg text-slate-800">Thiết lập lịch thi đấu</h3>
+                <button onclick="closeScheduleModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Chọn nội dung:</label>
+                    <select id="schModalEvent" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Vòng thi:</label>
+                        <select id="schModalRound" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
+                            <option value="Vòng loại">Vòng loại</option>
+                            <option value="Chung kết">Chung kết</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Trạng thái:</label>
+                        <select id="schModalStatus" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
+                            <option value="Sắp diễn ra">Sắp diễn ra</option>
+                            <option value="Đang thi đấu">Đang thi đấu</option>
+                            <option value="Đã kết thúc">Đã kết thúc</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Thời gian:</label>
+                        <input type="datetime-local" id="schModalTime" value="2026-06-10T08:00" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Địa điểm:</label>
+                        <input type="text" id="schModalLocation" value="Sân vận động chính" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none">
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button onclick="closeScheduleModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl">Hủy</button>
+                <button onclick="saveSchedule()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm">Lưu lịch</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Xác nhận -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 text-center">
+            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="confirmModalTitle" class="font-bold text-base text-slate-800">Xác nhận</h3>
+            <p id="confirmModalDesc" class="text-xs text-slate-500">Bạn có chắc chắn muốn thực hiện?</p>
+            <div class="flex justify-center gap-3 pt-2">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Hủy bỏ</button>
+                <button id="confirmModalActionBtn" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-sm">Đồng ý</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Hướng dẫn Google Sheet & Apps Script -->
+    <div id="googleSheetGuideModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-table text-emerald-600"></i> Mã Google Apps Script chuẩn
+                </h3>
+                <button onclick="closeGoogleSheetGuideModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs text-slate-600 overflow-y-auto pr-2">
+                <p>Mã Apps Script được cấu hình tự động xử lý lưu/đọc qua Web App URL.</p>
+                <div class="relative">
+                    <pre id="appsScriptCodeBlock" class="bg-slate-900 text-emerald-300 p-3.5 rounded-xl font-mono text-[11px] overflow-x-auto leading-relaxed">function doPost(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var payload = JSON.parse(e.postData.contents);
+  function writeSheet(name, rows) {
+    var sh = ss.getSheetByName(name) || ss.insertSheet(name);
+    sh.clearContents();
+    if (rows && rows.length > 0) {
+      sh.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+    }
+  }
+  if (payload.sheets) {
+    for (var sheetName in payload.sheets) {
+      writeSheet(sheetName, payload.sheets[sheetName]);
+    }
+  }
+  var meta = ss.getSheetByName('Data_System') || ss.insertSheet('Data_System');
+  meta.clearContents();
+  meta.getRange(1, 1).setValue(JSON.stringify(payload.rawState));
+  return ContentService.createTextOutput(JSON.stringify({status: 'ok'})).setMimeType(ContentService.MimeType.JSON);
+}
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var meta = ss.getSheetByName('Data_System');
+  var raw = meta ? meta.getRange(1, 1).getValue() : '{}';
+  return ContentService.createTextOutput(raw).setMimeType(ContentService.MimeType.JSON);
+}</pre>
+                    <button onclick="copyAppsScriptCode()" class="absolute top-2.5 right-2.5 bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-xs font-semibold shadow">
+                        <i class="fa-regular fa-copy mr-1"></i> Sao chép mã
+                    </button>
+                </div>
+            </div>
+            <div class="flex justify-end pt-3 border-t border-slate-100">
+                <button onclick="closeGoogleSheetGuideModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl z-50 text-sm flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage">Thông báo thành công!</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const AVAILABLE_EVENTS = [
+            { id: '100m_nam', name: 'Chạy 100m Nam', type: 'track', unitType: 'time', defaultMode: 'heat_and_lane' },
+            { id: '100m_nu', name: 'Chạy 100m Nữ', type: 'track', unitType: 'time', defaultMode: 'heat_and_lane' },
+            { id: '200m_nam', name: 'Chạy 200m Nam', type: 'track', unitType: 'time', defaultMode: 'heat_and_lane' },
+            { id: '200m_nu', name: 'Chạy 200m Nữ', type: 'track', unitType: 'time', defaultMode: 'heat_and_lane' },
+            { id: '400m_nam', name: 'Chạy 400m Nam', type: 'track', unitType: 'time', defaultMode: 'heat_and_lane' },
+            { id: '800m_nam', name: 'Chạy 800m Nam', type: 'long_track', unitType: 'time', defaultMode: 'heat_only' },
+            { id: '1500m_nam', name: 'Chạy 1500m Nam', type: 'long_track', unitType: 'time', defaultMode: 'heat_only' },
+            { id: 'nhay_xa_nam', name: 'Nhảy xa Nam', type: 'field', unitType: 'distance', defaultMode: 'heat_only' },
+            { id: 'nhay_xa_nu', name: 'Nhảy xa Nữ', type: 'field', unitType: 'distance', defaultMode: 'heat_only' },
+            { id: 'nhay_cao_nam', name: 'Nhảy cao Nam', type: 'field', unitType: 'distance', defaultMode: 'heat_only' },
+            { id: 'day_ta_nam', name: 'Đẩy tạ Nam', type: 'field', unitType: 'distance', defaultMode: 'heat_only' }
+        ];
+
+        const DEFAULT_CONFIG = {
+            tourName: 'Giải Điền Kinh Học Sinh Truyền Thống Năm 2026',
+            tourDate: '10/06/2026 - 12/06/2026',
+            tourLocation: 'Sân vận động Trung tâm',
+            trackLanes: 8,
+            defaultFinalists: 8,
+            pts1: 11, pts2: 9, pts3: 8, pts4: 7, pts5: 6, pts6: 5, pts7: 4, pts8: 3, pts9: 2, pts10: 1,
+            googleSheetUrl: 'https://script.google.com/macros/s/AKfycbynbnh1UVYWOBRX-x8CysBmZGkYKb5ONvjlwffcDJI44Bh5X2B_noe0FOB6scR2N3iB/exec',
+            autoSyncSheet: true,
+            unitClassMap: [
+                { unit: 'Cụm_01', classes: ['10A1', '10A2', '10A3'] },
+                { unit: 'Cụm_02', classes: ['11B1', '11B2', '11B3'] },
+                { unit: 'Cụm_03', classes: ['12C1', '12C2', '12C3'] },
+                { unit: 'Cụm_04', classes: ['10A4', '11B4', '12C4'] }
+            ]
+        };
+
+        const DEFAULT_ATHLETES = [
+            { id: 1, bib: '101', name: 'Nguyễn Văn An', cccd: '068208001011', gender: 'Nam', unit: 'Cụm_01', className: '10A1', eventId: '100m_nam' },
+            { id: 2, bib: '102', name: 'Trần Bình Trọng', cccd: '068208001022', gender: 'Nam', unit: 'Cụm_01', className: '10A2', eventId: '100m_nam' },
+            { id: 3, bib: '103', name: 'Lê Hoàng Long', cccd: '068208001033', gender: 'Nam', unit: 'Cụm_02', className: '11B1', eventId: '100m_nam' },
+            { id: 4, bib: '104', name: 'Phạm Minh Quân', cccd: '068208001044', gender: 'Nam', unit: 'Cụm_03', className: '12C1', eventId: '100m_nam' },
+            { id: 5, bib: '105', name: 'Hoàng Văn Hải', cccd: '068208001055', gender: 'Nam', unit: 'Cụm_01', className: '10A3', eventId: '100m_nam' },
+            { id: 6, bib: '106', name: 'Vũ Đình Phong', cccd: '068208001066', gender: 'Nam', unit: 'Cụm_02', className: '11B2', eventId: '100m_nam' },
+            { id: 7, bib: '107', name: 'Đặng Quốc Khánh', cccd: '068208001077', gender: 'Nam', unit: 'Cụm_04', className: '10A4', eventId: '100m_nam' },
+            { id: 8, bib: '108', name: 'Ngô Gia Bảo', cccd: '068208001088', gender: 'Nam', unit: 'Cụm_03', className: '12C2', eventId: '100m_nam' },
+            { id: 9, bib: '109', name: 'Trịnh Công Sơn', cccd: '068208001099', gender: 'Nam', unit: 'Cụm_04', className: '12C4', eventId: '100m_nam' },
+            { id: 10, bib: '110', name: 'Nguyễn Thị Mai', cccd: '068308002011', gender: 'Nữ', unit: 'Cụm_01', className: '10A1', eventId: '100m_nu' },
+            { id: 11, bib: '111', name: 'Lê Thị Hoa', cccd: '068308002022', gender: 'Nữ', unit: 'Cụm_02', className: '11B1', eventId: '100m_nu' },
+            { id: 12, bib: '112', name: 'Đỗ Thành Đạt', cccd: '068208003011', gender: 'Nam', unit: 'Cụm_03', className: '12C2', eventId: '800m_nam' },
+            { id: 13, bib: '113', name: 'Bùi Văn Kiên', cccd: '068208003022', gender: 'Nam', unit: 'Cụm_02', className: '11B1', eventId: '800m_nam' },
+            { id: 14, bib: '114', name: 'Lý Tiểu Long', cccd: '068208004011', gender: 'Nam', unit: 'Cụm_01', className: '10A2', eventId: 'nhay_xa_nam' },
+            { id: 15, bib: '115', name: 'Phan Thanh Nam', cccd: '068208004022', gender: 'Nam', unit: 'Cụm_02', className: '11B2', eventId: 'nhay_xa_nam' }
+        ];
+
+        const DEFAULT_SCHEDULE = [
+            { id: 1, eventId: '100m_nam', round: 'Vòng loại', time: '2026-06-10T08:00', location: 'Đường chạy thẳng - Sân chính', status: 'Đã kết thúc' },
+            { id: 2, eventId: '100m_nam', round: 'Chung kết', time: '2026-06-10T15:30', location: 'Đường chạy thẳng - Sân chính', status: 'Sắp diễn ra' },
+            { id: 3, eventId: '800m_nam', round: 'Chung kết', time: '2026-06-10T09:15', location: 'Đường chạy vòng', status: 'Sắp diễn ra' },
+            { id: 4, eventId: 'nhay_xa_nam', round: 'Chung kết', time: '2026-06-10T08:30', location: 'Hố nhảy số 1', status: 'Sắp diễn ra' }
+        ];
+
+        let config = JSON.parse(localStorage.getItem('dk_v3_config')) || DEFAULT_CONFIG;
+        if (!config.googleSheetUrl) {
+            config.googleSheetUrl = DEFAULT_CONFIG.googleSheetUrl;
+        }
+        let athletes = JSON.parse(localStorage.getItem('dk_v3_athletes')) || DEFAULT_ATHLETES;
+        let schedule = JSON.parse(localStorage.getItem('dk_v3_schedule')) || DEFAULT_SCHEDULE;
+        let draws = JSON.parse(localStorage.getItem('dk_v3_draws')) || {};
+        let results = JSON.parse(localStorage.getItem('dk_v3_results')) || {};
+        // Mặc định khi truy cập từ link GitHub trên thiết bị lạ sẽ ở quyền Khán giả (viewer) để an toàn dữ liệu
+        let currentUser = JSON.parse(localStorage.getItem('dk_v3_user')) || { role: 'viewer', assignedEvent: '' };
+
+        function saveData() {
+            localStorage.setItem('dk_v3_config', JSON.stringify(config));
+            localStorage.setItem('dk_v3_athletes', JSON.stringify(athletes));
+            localStorage.setItem('dk_v3_schedule', JSON.stringify(schedule));
+            localStorage.setItem('dk_v3_draws', JSON.stringify(draws));
+            localStorage.setItem('dk_v3_results', JSON.stringify(results));
+            localStorage.setItem('dk_v3_user', JSON.stringify(currentUser));
+            if (config.autoSyncSheet && config.googleSheetUrl && currentUser.role !== 'viewer') {
+                syncToGoogleSheet(true);
+            }
+        }
+
+        window.onload = function() {
+            // Đóng modal đăng nhập khi vừa vào trang để khán giả xem được ngay
+            const loginModal = document.getElementById('loginModal');
+            if (loginModal) loginModal.classList.add('hidden');
+
+            applyConfigToUI();
+            populateEventDropdowns();
+            populateUnitAndClassFilters();
+            applyUserRolePermissions();
+            renderAthletes();
+            renderSchedule();
+            initDrawTab();
+            initResultsTab();
+            updateSheetSyncBadge();
+            // Tự động tải dữ liệu mới nhất từ Google Sheet khi mở web trên GitHub Pages
+            if (config.googleSheetUrl) {
+                syncFromGoogleSheet(true);
+            }
+        };
+
+        function applyUserRolePermissions() {
+            const roleBadge = document.getElementById('userRoleBadge');
+            const nameDisplay = document.getElementById('userNameDisplay');
+            const resultsLabel = document.getElementById('resultsTabLabel');
+            
+            if (currentUser.role === 'admin') {
+                roleBadge.innerText = 'Admin';
+                roleBadge.className = 'text-xs font-bold px-2 py-0.5 rounded bg-blue-600 text-white';
+                nameDisplay.innerText = 'Quản trị viên';
+                if(resultsLabel) resultsLabel.innerText = '4. Nhập thành tích & Xếp hạng';
+            } else if (currentUser.role === 'referee') {
+                roleBadge.innerText = 'Trọng tài';
+                roleBadge.className = 'text-xs font-bold px-2 py-0.5 rounded bg-amber-600 text-white';
+                const evObj = AVAILABLE_EVENTS.find(e => e.id === currentUser.assignedEvent);
+                nameDisplay.innerText = `Trọng tài: ${evObj ? evObj.name : 'Chưa chọn'}`;
+                if(resultsLabel) resultsLabel.innerText = '4. Nhập thành tích & Xếp hạng';
+            } else if (currentUser.role === 'viewer') {
+                roleBadge.innerText = 'Khán giả';
+                roleBadge.className = 'text-xs font-bold px-2 py-0.5 rounded bg-emerald-600 text-white';
+                nameDisplay.innerText = 'Người xem';
+                if(resultsLabel) resultsLabel.innerText = '4. Tra cứu kết quả thi đấu';
+            }
+
+            applyRoleUIElementsLock();
+        }
+
+        function applyRoleUIElementsLock() {
+            const isViewer = currentUser.role === 'viewer';
+            const isViewerOrReferee = currentUser.role === 'viewer' || currentUser.role === 'referee';
+            
+            document.querySelectorAll('.admin-only-action').forEach(el => {
+                if (isViewerOrReferee) el.classList.add('hidden');
+                else el.classList.remove('hidden');
+            });
+            document.querySelectorAll('.admin-only-column').forEach(el => {
+                if (isViewer) el.classList.add('hidden');
+                else el.classList.remove('hidden');
+            });
+
+            document.querySelectorAll('.admin-referee-action').forEach(el => {
+                if (isViewer) el.classList.add('hidden');
+                else el.classList.remove('hidden');
+            });
+
+            // Viewer restriction: hide Tab 3 (Bốc thăm) entirely for viewers per request
+            // Viewer restriction: Allow viewers to see Tab 3 (Bốc thăm) in read-only mode per requirements
+            document.querySelectorAll('.viewer-hide-draw').forEach(el => {
+                el.classList.remove('hidden');
+            });
+
+            const resHeaderTitle = document.getElementById('resHeaderTitle');
+            const resHeaderDesc = document.getElementById('resHeaderDesc');
+            if(resHeaderTitle && resHeaderDesc) {
+                if(isViewer) {
+                    resHeaderTitle.innerText = 'Tra cứu kết quả thi đấu & Bảng xếp hạng';
+                    resHeaderDesc.innerText = 'Xem thành tích chính thức và bảng tổng sắp huy chương các nội dung đã công khai.';
+                } else {
+                    resHeaderTitle.innerText = 'Nhập thành tích Chạy, Nhảy, Đẩy & Xếp hạng';
+                    resHeaderDesc.innerText = 'Nhập kết quả thi đấu, tự động xếp hạng và lập danh sách Vòng Chung kết theo chuẩn Seeding.';
+                }
+            }
+        }
+
+        function openLoginModal() {
+            document.getElementById('loginRoleSelect').value = currentUser.role;
+            document.getElementById('loginPasswordInput').value = '';
+            onChangeLoginRole();
+            if (currentUser.role === 'referee' && currentUser.assignedEvent) {
+                document.getElementById('loginRefereeEvent').value = currentUser.assignedEvent;
+            }
+            document.getElementById('loginModal').classList.remove('hidden');
+        }
+
+        function closeLoginModalIfAllowed() {
+            document.getElementById('loginModal').classList.add('hidden');
+        }
+
+        function onChangeLoginRole() {
+            const role = document.getElementById('loginRoleSelect').value;
+            const refBox = document.getElementById('refereeEventBox');
+            if (role === 'referee') {
+                refBox.classList.remove('hidden');
+                const sel = document.getElementById('loginRefereeEvent');
+                sel.innerHTML = '';
+                AVAILABLE_EVENTS.forEach(ev => {
+                    sel.innerHTML += `<option value="${ev.id}">${ev.name}</option>`;
+                });
+            } else {
+                refBox.classList.add('hidden');
+            }
+        }
+
+        function confirmLoginRole() {
+            const role = document.getElementById('loginRoleSelect').value;
+            const pwd = document.getElementById('loginPasswordInput').value.trim();
+            let assignedEvent = '';
+
+            if (role === 'admin' && pwd !== 'admin123') {
+                showToast('Mật khẩu Quản trị viên không đúng (Mặc định: admin123)!', true);
+                return;
+            }
+            if (role === 'referee') {
+                if (pwd !== 'tt123' && pwd !== 'admin123') {
+                    showToast('Mật khẩu Trọng tài không đúng (Mặc định: tt123)!', true);
+                    return;
+                }
+                assignedEvent = document.getElementById('loginRefereeEvent').value;
+                if (!assignedEvent) {
+                    showToast('Vui lòng chọn nội dung trọng tài phụ trách!', true);
+                    return;
+                }
+            }
+            currentUser = { role, assignedEvent };
+            saveData();
+            applyUserRolePermissions();
+            renderAthletes();
+            renderSchedule();
+            onSelectDrawEvent();
+            onSelectResEvent();
+            closeLoginModalIfAllowed();
+            
+            if (role === 'referee') {
+                switchTab('results');
+                document.getElementById('resEventSelect').value = assignedEvent;
+                onSelectResEvent();
+            } else if (role === 'viewer') {
+                const activeTab = document.querySelector('.tab-content.active');
+                if (activeTab && activeTab.id === 'tab-config') {
+                    switchTab('athletes');
+                }
+            }
+            showToast(`Đã chuyển sang vai trò: ${role === 'admin' ? 'Quản trị viên' : (role === 'referee' ? 'Trọng tài' : 'Khán giả / Người xem')}!`);
+        }
+
+        function switchTab(tabId) {
+            if (tabId === 'config' && currentUser.role !== 'admin') {
+                showToast('Bạn không có quyền truy cập Tab Cấu hình giải đấu!', true);
+                return;
+            }
+
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('text-blue-600', 'bg-blue-50');
+                el.classList.add('text-slate-600', 'hover:text-blue-600', 'hover:bg-slate-50');
+            });
+
+            document.getElementById('tab-' + tabId).classList.add('active');
+            const btn = document.getElementById('btn-' + tabId);
+            if(btn) {
+                btn.classList.remove('text-slate-600', 'hover:text-blue-600', 'hover:bg-slate-50');
+                btn.classList.add('text-blue-600', 'bg-blue-50');
+            }
+
+            if(tabId === 'athletes') {
+                populateUnitAndClassFilters();
+                renderAthletes();
+            }
+            if(tabId === 'draw') initDrawTab();
+            if(tabId === 'results') initResultsTab();
+            if(tabId === 'config' && currentUser.role === 'admin') loadConfigForm();
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const msg = document.getElementById('toastMessage');
+            const icon = document.getElementById('toastIcon');
+            msg.innerText = message;
+            icon.className = isError ? 'fa-solid fa-circle-exclamation text-rose-400 text-lg' : 'fa-solid fa-circle-check text-emerald-400 text-lg';
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3200);
+        }
+
+        let pendingConfirmAction = null;
+        function openConfirmModal(title, desc, actionCallback) {
+            document.getElementById('confirmModalTitle').innerText = title;
+            document.getElementById('confirmModalDesc').innerText = desc;
+            pendingConfirmAction = actionCallback;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            pendingConfirmAction = null;
+        }
+        const confirmActionBtn = document.getElementById('confirmModalActionBtn');
+        if (confirmActionBtn) {
+            confirmActionBtn.addEventListener('click', () => {
+                if (pendingConfirmAction) pendingConfirmAction();
+                closeConfirmModal();
+            });
+        }
+
+        function populateEventDropdowns() {
+            const selects = ['filterEvent', 'modalEvent', 'bulkEventSelect', 'schModalEvent', 'drawEventSelect', 'resEventSelect'];
+            selects.forEach(selId => {
+                const el = document.getElementById(selId);
+                if(!el) return;
+                const currentVal = el.value;
+                el.innerHTML = selId === 'filterEvent' ? '<option value="">Tất cả Nội dung</option>' : '';
+                AVAILABLE_EVENTS.forEach(ev => {
+                    el.innerHTML += `<option value="${ev.id}">${ev.name}</option>`;
+                });
+                if(currentVal) el.value = currentVal;
+            });
+        }
+
+        function populateUnitAndClassFilters() {
+            const mapList = config.unitClassMap || [];
+            const unitsSet = new Set([
+                ...mapList.map(m => m.unit),
+                ...athletes.map(a => a.unit).filter(Boolean)
+            ]);
+
+            const filterUnit = document.getElementById('filterUnit');
+            const currUnit = filterUnit ? filterUnit.value : '';
+            if (filterUnit) {
+                filterUnit.innerHTML = '<option value="">Tất cả Đơn vị</option>';
+                unitsSet.forEach(u => { filterUnit.innerHTML += `<option value="${u}">${u}</option>`; });
+                filterUnit.value = currUnit;
+            }
+
+            let classesSet = new Set();
+            if (currUnit) {
+                const found = mapList.find(m => m.unit === currUnit);
+                if (found && Array.isArray(found.classes)) {
+                    found.classes.forEach(c => classesSet.add(c));
+                }
+                athletes.filter(a => a.unit === currUnit && a.className).forEach(a => classesSet.add(a.className));
+            } else {
+                mapList.forEach(m => (m.classes || []).forEach(c => classesSet.add(c)));
+                athletes.map(a => a.className).filter(Boolean).forEach(c => classesSet.add(c));
+            }
+
+            const filterClass = document.getElementById('filterClass');
+            if (filterClass) {
+                const currClass = filterClass.value;
+                filterClass.innerHTML = '<option value="">Tất cả Lớp</option>';
+                classesSet.forEach(c => { filterClass.innerHTML += `<option value="${c}">${c}</option>`; });
+                if ([...classesSet].includes(currClass)) {
+                    filterClass.value = currClass;
+                } else {
+                    filterClass.value = '';
+                }
+            }
+
+            const unitDataList = document.getElementById('unitSuggestions');
+            if (unitDataList) {
+                unitDataList.innerHTML = '';
+                unitsSet.forEach(u => { unitDataList.innerHTML += `<option value="${u}">`; });
+            }
+
+            updateModalClassSuggestions();
+        }
+
+        function onFilterUnitChange() {
+            populateUnitAndClassFilters();
+            renderAthletes();
+        }
+
+        function updateModalClassSuggestions() {
+            const modalUnitEl = document.getElementById('modalUnit');
+            const classDataList = document.getElementById('classSuggestions');
+            if (!modalUnitEl || !classDataList) return;
+
+            const selectedUnit = modalUnitEl.value.trim();
+            const mapList = config.unitClassMap || [];
+            let classesSet = new Set();
+
+            if (selectedUnit) {
+                const found = mapList.find(m => m.unit.toLowerCase() === selectedUnit.toLowerCase());
+                if (found && Array.isArray(found.classes)) {
+                    found.classes.forEach(c => classesSet.add(c));
+                }
+                athletes.filter(a => a.unit === selectedUnit && a.className).forEach(a => classesSet.add(a.className));
+            }
+
+            if (classesSet.size === 0) {
+                mapList.forEach(m => (m.classes || []).forEach(c => classesSet.add(c)));
+                athletes.map(a => a.className).filter(Boolean).forEach(c => classesSet.add(c));
+            }
+
+            classDataList.innerHTML = '';
+            classesSet.forEach(c => { classDataList.innerHTML += `<option value="${c}">`; });
+        }
+
+        function renderAthletes() {
+            const tbody = document.getElementById('athleteTableBody');
+            const emptyState = document.getElementById('athleteEmptyState');
+            const search = document.getElementById('searchAthlete').value.toLowerCase().trim();
+            const filterU = document.getElementById('filterUnit').value;
+            const filterC = document.getElementById('filterClass').value;
+            const filterEv = document.getElementById('filterEvent').value;
+            const filterGen = document.getElementById('filterGender').value;
+
+            const filtered = athletes.filter(a => {
+                const cccdStr = (a.cccd || '').toLowerCase();
+                const matchSearch = a.name.toLowerCase().includes(search) ||
+                                    a.bib.toLowerCase().includes(search) ||
+                                    cccdStr.includes(search);
+                const matchU = filterU === '' || a.unit === filterU;
+                const matchC = filterC === '' || a.className === filterC;
+                const matchEv = filterEv === '' || a.eventId === filterEv;
+                const matchGen = filterGen === '' || a.gender === filterGen;
+                return matchSearch && matchU && matchC && matchEv && matchGen;
+            });
+
+            document.getElementById('athleteCountLabel').innerText = `Hiển thị: ${filtered.length} / ${athletes.length} VĐV`;
+            tbody.innerHTML = '';
+
+            if(filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            filtered.forEach((a, idx) => {
+                const evObj = AVAILABLE_EVENTS.find(e => e.id === a.eventId);
+                const evName = evObj ? evObj.name : a.eventId;
+                const isValidCccd = /^\d{12}$/.test(a.cccd || '');
+                const actionCell = currentUser.role !== 'viewer' ? `
+                    <td class="p-3.5 text-center space-x-1 admin-only-column">
+                        <button onclick="openAthleteModal(${a.id})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Chỉnh sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteAthlete(${a.id})" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Xóa"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                ` : '';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3.5 text-center text-slate-400 font-medium">${idx + 1}</td>
+                        <td class="p-3.5 text-center"><span class="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold rounded-lg border border-blue-200">${a.bib}</span></td>
+                        <td class="p-3.5 font-semibold text-slate-800">${a.name}</td>
+                        <td class="p-3.5 font-mono text-xs ${isValidCccd ? 'text-slate-700' : 'text-rose-600 font-bold'}">${a.cccd || 'Chưa cập nhật'}</td>
+                        <td class="p-3.5 text-center"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium ${a.gender === 'Nam' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}">${a.gender}</span></td>
+                        <td class="p-3.5 text-slate-700 font-medium">${a.unit || '-'}</td>
+                        <td class="p-3.5"><span class="bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-md text-xs font-semibold">${a.className || '-'}</span></td>
+                        <td class="p-3.5"><span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-medium">${evName}</span></td>
+                        ${actionCell}
+                    </tr>
+                `;
+            });
+        }
+
+        function openAthleteModal(id = null) {
+            if (currentUser.role === 'viewer' || currentUser.role === 'referee') {
+                showToast('Bạn không có quyền thêm hoặc sửa VĐV!', true);
+                return;
+            }
+            populateUnitAndClassFilters();
+            const errEl = document.getElementById('athleteModalError');
+            errEl.classList.add('hidden');
+            document.getElementById('athleteModal').classList.remove('hidden');
+
+            if(id) {
+                document.getElementById('athleteModalTitle').innerText = 'Chỉnh sửa hồ sơ VĐV';
+                const a = athletes.find(item => item.id === id);
+                document.getElementById('editAthleteId').value = a.id;
+                document.getElementById('modalBib').value = a.bib;
+                document.getElementById('modalCccd').value = a.cccd || '';
+                document.getElementById('modalName').value = a.name;
+                document.getElementById('modalGender').value = a.gender;
+                document.getElementById('modalUnit').value = a.unit || '';
+                document.getElementById('modalClass').value = a.className || '';
+                document.getElementById('modalEvent').value = a.eventId;
+                updateModalClassSuggestions();
+            } else {
+                document.getElementById('athleteModalTitle').innerText = 'Thêm vận động viên mới';
+                document.getElementById('editAthleteId').value = '';
+                const nextBib = athletes.length > 0 ? (Math.max(...athletes.map(i => parseInt(i.bib) || 100)) + 1).toString() : '101';
+                document.getElementById('modalBib').value = nextBib;
+                document.getElementById('modalCccd').value = '';
+                document.getElementById('modalName').value = '';
+                document.getElementById('modalGender').value = 'Nam';
+                document.getElementById('modalUnit').value = '';
+                document.getElementById('modalClass').value = '';
+                updateModalClassSuggestions();
+            }
+        }
+
+        function closeAthleteModal() {
+            document.getElementById('athleteModal').classList.add('hidden');
+        }
+
+        function saveAthlete() {
+            const id = document.getElementById('editAthleteId').value;
+            const bib = document.getElementById('modalBib').value.trim();
+            const cccd = document.getElementById('modalCccd').value.trim();
+            const name = document.getElementById('modalName').value.trim();
+            const gender = document.getElementById('modalGender').value;
+            const unit = document.getElementById('modalUnit').value.trim();
+            const className = document.getElementById('modalClass').value.trim();
+            const eventId = document.getElementById('modalEvent').value;
+            const errEl = document.getElementById('athleteModalError');
+
+            if(!bib || !name || !unit || !className) {
+                errEl.innerText = 'Vui lòng điền đầy đủ Số BIB, Họ tên, Đơn vị và Lớp!';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if(!/^\d{12}$/.test(cccd)) {
+                errEl.innerText = 'Số CCCD bắt buộc phải gồm đúng 12 chữ số!';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if(id) {
+                const a = athletes.find(item => item.id == id);
+                a.bib = bib;
+                a.cccd = cccd;
+                a.name = name;
+                a.gender = gender;
+                a.unit = unit;
+                a.className = className;
+                a.eventId = eventId;
+                showToast('Đã cập nhật thông tin VĐV thành công!');
+            } else {
+                const newId = athletes.length > 0 ? Math.max(...athletes.map(i => i.id)) + 1 : 1;
+                athletes.push({ id: newId, bib, cccd, name, gender, unit, className, eventId });
+                showToast('Đã thêm vận động viên mới thành công!');
+            }
+
+            saveData();
+            closeAthleteModal();
+            populateUnitAndClassFilters();
+            renderAthletes();
+        }
+
+        function deleteAthlete(id) {
+            if (currentUser.role !== 'admin') {
+                showToast('Chỉ có Quản trị viên mới có quyền xóa VĐV!', true);
+                return;
+            }
+            const a = athletes.find(item => item.id === id);
+            openConfirmModal(
+                'Xóa vận động viên?',
+                `Bạn có chắc chắn muốn xóa VĐV "${a ? a.name : ''}" khỏi danh sách?`,
+                () => {
+                    athletes = athletes.filter(i => i.id !== id);
+                    saveData();
+                    renderAthletes();
+                    showToast('Đã xóa vận động viên!');
+                }
+            );
+        }
+
+        function openBulkImportModal() {
+            document.getElementById('bulkImportModal').classList.remove('hidden');
+        }
+        function closeBulkImportModal() {
+            document.getElementById('bulkImportModal').classList.add('hidden');
+        }
+        function processBulkImport() {
+            const raw = document.getElementById('bulkTextInput').value.trim();
+            const eventId = document.getElementById('bulkEventSelect').value;
+            if(!raw) {
+                showToast('Vui lòng nhập dữ liệu VĐV!', true);
+                return;
+            }
+            const lines = raw.split('\n');
+            let added = 0;
+            lines.forEach(line => {
+                const parts = line.split('|').map(s => s.trim());
+                if(parts.length >= 6) {
+                    const [bib, name, cccd, gender, unit, className] = parts;
+                    const newId = athletes.length > 0 ? Math.max(...athletes.map(i => i.id)) + 1 : 1;
+                    athletes.push({
+                        id: newId,
+                        bib: bib || (100 + newId).toString(),
+                        name: name,
+                        cccd: cccd,
+                        gender: gender === 'Nữ' ? 'Nữ' : 'Nam',
+                        unit: unit,
+                        className: className,
+                        eventId: eventId
+                    });
+                    added++;
+                }
+            });
+            if(added > 0) {
+                saveData();
+                populateUnitAndClassFilters();
+                renderAthletes();
+                closeBulkImportModal();
+                document.getElementById('bulkTextInput').value = '';
+                showToast(`Đã nhập nhanh thành công ${added} VĐV!`);
+            } else {
+                showToast('Định dạng dòng không hợp lệ, vui lòng kiểm tra lại!', true);
+            }
+        }
+
+        function renderSchedule() {
+            const container = document.getElementById('scheduleCardContainer');
+            container.innerHTML = '';
+            if(schedule.length === 0) {
+                container.innerHTML = '<div class="col-span-3 bg-white p-8 rounded-2xl text-center text-slate-400 border border-slate-100">Chưa có lịch thi đấu nào được tạo.</div>';
+                return;
+            }
+
+            schedule.forEach(s => {
+                const evObj = AVAILABLE_EVENTS.find(e => e.id === s.eventId);
+                const evName = evObj ? evObj.name : s.eventId;
+                const formattedTime = s.time ? s.time.replace('T', ' - ') : 'Chưa cập nhật';
+                const statusColors = {
+                    'Sắp diễn ra': 'bg-amber-100 text-amber-800',
+                    'Đang thi đấu': 'bg-emerald-100 text-emerald-800',
+                    'Đã kết thúc': 'bg-slate-200 text-slate-700'
+                };
+                const stBadge = statusColors[s.status] || 'bg-blue-100 text-blue-700';
+                const deleteSchBtn = currentUser.role === 'admin' ? `<button onclick="deleteSchedule(${s.id})" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash text-xs"></i></button>` : '';
+
+                const drawButtonHtml = `
+                    <button onclick="jumpToDraw('${s.eventId}', '${s.round}')" class="text-blue-600 hover:text-blue-800 text-xs font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-shuffle"></i> ${currentUser.role === 'viewer' ? 'Xem DS bốc thăm' : 'Bốc thăm đợt'}
+                    </button>
+                `;
+
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                        <div>
+                            <div class="flex justify-between items-center gap-2">
+                                <span class="bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold px-2.5 py-0.5 rounded-lg">${s.round}</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="${stBadge} text-xs font-semibold px-2.5 py-0.5 rounded-full">${s.status || 'Sắp diễn ra'}</span>
+                                    ${deleteSchBtn}
+                                </div>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-lg mt-2.5">${evName}</h3>
+                            <p class="text-xs text-slate-600 mt-1.5 flex items-center gap-2"><i class="fa-regular fa-clock text-blue-500"></i> ${formattedTime}</p>
+                            <p class="text-xs text-slate-600 mt-1 flex items-center gap-2"><i class="fa-solid fa-location-dot text-rose-500"></i> ${s.location}</p>
+                        </div>
+                        <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
+                            ${drawButtonHtml}
+                            <button onclick="jumpToResults('${s.eventId}', '${s.round}')" class="text-emerald-600 hover:text-emerald-800 text-xs font-semibold flex items-center gap-1">
+                                ${s.status === 'Đã kết thúc' ? 'Xem kết quả' : 'Nhập kết quả'} <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openScheduleModal() {
+            if (currentUser.role !== 'admin') {
+                showToast('Chỉ có Quản trị viên mới được tạo lịch thi đấu!', true);
+                return;
+            }
+            document.getElementById('scheduleModal').classList.remove('hidden');
+        }
+        function closeScheduleModal() { document.getElementById('scheduleModal').classList.add('hidden'); }
+        function saveSchedule() {
+            const eventId = document.getElementById('schModalEvent').value;
+            const round = document.getElementById('schModalRound').value;
+            const status = document.getElementById('schModalStatus').value;
+            const time = document.getElementById('schModalTime').value;
+            const location = document.getElementById('schModalLocation').value.trim();
+
+            const newId = schedule.length > 0 ? Math.max(...schedule.map(i => i.id)) + 1 : 1;
+            schedule.push({ id: newId, eventId, round, time, location, status });
+            saveData();
+            closeScheduleModal();
+            renderSchedule();
+            showToast('Đã lưu lịch thi đấu mới!');
+        }
+        function deleteSchedule(id) {
+            schedule = schedule.filter(s => s.id !== id);
+            saveData();
+            renderSchedule();
+            showToast('Đã xóa mục lịch thi đấu!');
+        }
+        function jumpToDraw(eventId, round) {
+            switchTab('draw');
+            document.getElementById('drawEventSelect').value = eventId;
+            document.getElementById('drawRoundSelect').value = round;
+            onSelectDrawEvent();
+        }
+        function jumpToResults(eventId, round) {
+            switchTab('results');
+            document.getElementById('resEventSelect').value = eventId;
+            document.getElementById('resRoundSelect').value = round;
+            onSelectResEvent();
+        }
+
+        function initDrawTab() {
+            onSelectDrawEvent();
+        }
+
+        function onSelectDrawEvent() {
+            const evId = document.getElementById('drawEventSelect').value;
+            const evObj = AVAILABLE_EVENTS.find(e => e.id === evId);
+            const modeSelect = document.getElementById('drawModeSelect');
+            const notice = document.getElementById('drawInfoNotice');
+
+            if(evObj) {
+                modeSelect.value = evObj.defaultMode || 'heat_and_lane';
+                const maxLanes = config.trackLanes || 8;
+                if(evObj.type === 'track') {
+                    notice.innerHTML = `<i class="fa-solid fa-circle-info text-blue-600 mr-1"></i> Nội dung chạy có ô/làn: Tối đa <b>${maxLanes} VĐV/đợt</b>, tự động xếp ô chạy.`;
+                } else if(evObj.type === 'long_track') {
+                    notice.innerHTML = `<i class="fa-solid fa-circle-info text-amber-600 mr-1"></i> Chạy cự ly trung/dài: Bốc thăm chia đợt và thứ tự đứng xuất phát.`;
+                } else {
+                    notice.innerHTML = `<i class="fa-solid fa-circle-info text-emerald-600 mr-1"></i> Nhảy / Đẩy: Bốc thăm thứ tự lượt thi đấu.`;
+                }
+            }
+            renderDrawResultsDisplay();
+        }
+
+        function getCenterLanePriorityOrder() {
+            const lanes = parseInt(config.trackLanes) || 8;
+            if(lanes === 4) return [2, 3, 1, 4];
+            if(lanes === 6) return [3, 4, 2, 5, 1, 6];
+            if(lanes === 10) return [5, 6, 4, 7, 3, 8, 2, 9, 1, 10];
+            return [4, 5, 3, 6, 2, 7, 1, 8];
+        }
+
+        function performDraw() {
+            if (currentUser.role === 'viewer') {
+                showToast('Khán giả không có quyền thực hiện bốc thăm!', true);
+                return;
+            }
+            const evId = document.getElementById('drawEventSelect').value;
+            const round = document.getElementById('drawRoundSelect').value;
+            const drawMode = document.getElementById('drawModeSelect').value;
+            const avoidSameUnit = document.getElementById('avoidSameUnit').checked;
+            const key = `${evId}_${round}`;
+
+            const registered = athletes.filter(a => a.eventId === evId);
+            if(registered.length === 0) {
+                showToast('Chưa có vận động viên nào đăng ký nội dung này!', true);
+                return;
+            }
+
+            const maxLanes = parseInt(config.trackLanes) || 8;
+            const maxPerHeat = drawMode === 'heat_and_lane' ? maxLanes : 12;
+
+            let pool = [...registered].sort(() => Math.random() - 0.5);
+            const numHeats = Math.ceil(pool.length / maxPerHeat);
+            let heats = [];
+            for(let i = 0; i < numHeats; i++) {
+                heats.push({ heatIndex: i + 1, mode: drawMode, athletes: [] });
+            }
+
+            if(avoidSameUnit && numHeats > 1) {
+                let currentHeat = 0;
+                pool.forEach(athlete => {
+                    let placed = false;
+                    for(let i = 0; i < numHeats; i++) {
+                        let targetHeat = (currentHeat + i) % numHeats;
+                        let conflict = heats[targetHeat].athletes.some(a =>
+                            (a.unit && a.unit === athlete.unit) || (a.className && a.className === athlete.className)
+                        );
+                        if(!conflict && heats[targetHeat].athletes.length < maxPerHeat) {
+                            heats[targetHeat].athletes.push({ ...athlete });
+                            currentHeat = (targetHeat + 1) % numHeats;
+                            placed = true;
+                            break;
+                        }
+                    }
+                    if(!placed) {
+                        let availableHeats = heats.filter(h => h.athletes.length < maxPerHeat);
+                        availableHeats.sort((a, b) => a.athletes.length - b.athletes.length);
+                        availableHeats[0].athletes.push({ ...athlete });
+                    }
+                });
+            } else {
+                let idx = 0;
+                pool.forEach(athlete => {
+                    heats[idx % numHeats].athletes.push({ ...athlete });
+                    idx++;
+                });
+            }
+
+            const lanePriority = getCenterLanePriorityOrder();
+
+            heats.forEach(h => {
+                h.athletes.sort(() => Math.random() - 0.5);
+                if(drawMode === 'heat_and_lane') {
+                    const assignedLanes = lanePriority.slice(0, h.athletes.length);
+                    h.athletes.forEach((ath, i) => {
+                        ath.lane = assignedLanes[i] || (i + 1);
+                    });
+                    h.athletes.sort((a, b) => a.lane - b.lane);
+                } else {
+                    h.athletes.forEach((ath, i) => {
+                        ath.lane = i + 1;
+                    });
+                }
+            });
+
+            draws[key] = heats;
+            saveData();
+            renderDrawResultsDisplay();
+            showToast(`Đã bốc thăm thành công (${heats.length} đợt)!`);
+        }
+
+        function renderDrawResultsDisplay() {
+            const evId = document.getElementById('drawEventSelect').value;
+            const round = document.getElementById('drawRoundSelect').value;
+            const key = `${evId}_${round}`;
+            const container = document.getElementById('drawResultContainer');
+            const evObj = AVAILABLE_EVENTS.find(e => e.id === evId);
+
+            const printTourTitle = document.getElementById('printTourTitle');
+            const printSubTitle = document.getElementById('printSubTitle');
+            if(printTourTitle) printTourTitle.innerText = config.tourName;
+            if(printSubTitle) printSubTitle.innerText = `Nội dung: ${evObj ? evObj.name : ''} — Vòng: ${round}`;
+
+            const data = draws[key];
+            if(!data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 text-center text-slate-400">
+                        Chưa có dữ liệu bốc thăm cho <b>${evObj ? evObj.name : ''} (${round})</b>.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            data.forEach(h => {
+                const isLaneMode = h.mode !== 'heat_only';
+                const colTitle = isLaneMode ? 'Ô / Làn chạy' : 'Thứ tự thi đấu';
+                html += `
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-4 print:border print:border-slate-300 print:shadow-none">
+                        <div class="bg-slate-100 px-5 py-3 border-b border-slate-200 flex justify-between items-center print:bg-slate-200 print:py-2">
+                            <h3 class="font-bold text-slate-800 text-sm">
+                                <i class="fa-solid fa-flag-checkered text-blue-600 mr-2"></i> Đợt chạy số ${h.heatIndex}
+                                <span class="ml-2 text-xs font-normal text-slate-500">(${isLaneMode ? 'Chia đợt & Xếp ô chạy' : 'Chỉ bốc thăm đợt / thứ tự'})</span>
+                            </h3>
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-semibold">${h.athletes.length} VĐV</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm print:text-xs">
+                                <thead>
+                                    <tr class="text-slate-500 font-semibold border-b border-slate-100 text-xs bg-slate-50/50 print:bg-slate-100 print:text-slate-700">
+                                        <th class="p-3 w-28 text-center">${colTitle}</th>
+                                        <th class="p-3 w-20 text-center">Số BIB</th>
+                                        <th class="p-3">Họ và tên VĐV</th>
+                                        <th class="p-3">CCCD (12 số)</th>
+                                        <th class="p-3">Đơn vị</th>
+                                        <th class="p-3">Lớp</th>
+                                        <th class="p-3 text-center">Thành tích VL</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                `;
+                h.athletes.forEach(ath => {
+                    html += `
+                        <tr class="hover:bg-slate-50 print:border-b print:border-slate-200">
+                            <td class="p-3 text-center font-bold text-blue-700 bg-blue-50/30 print:bg-transparent">${isLaneMode ? 'Ô ' + ath.lane : '#' + ath.lane}</td>
+                            <td class="p-3 text-center font-bold text-slate-700">${ath.bib}</td>
+                            <td class="p-3 font-semibold text-slate-800">${ath.name}</td>
+                            <td class="p-3 font-mono text-xs text-slate-600">${ath.cccd || '-'}</td>
+                            <td class="p-3 text-slate-700">${ath.unit || '-'}</td>
+                            <td class="p-3"><span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-xs font-semibold print:bg-transparent print:p-0 print:text-slate-700">${ath.className || '-'}</span></td>
+                            <td class="p-3 text-center text-xs font-semibold text-emerald-700">${ath.qualifyMark || '-'}</td>
+                        </tr>
+                    `;
+                });
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function printDrawSheet() {
+            const evId = document.getElementById('drawEventSelect').value;
+            const round = document.getElementById('drawRoundSelect').value;
+            const key = `${evId}_${round}`;
+            const data = draws[key];
+            if (!data || data.length === 0) {
+                showToast('Chưa có dữ liệu bốc thăm để in biên bản!', true);
+                return;
+            }
+            window.print();
+        }
+
+        function initResultsTab() {
+            onSelectResEvent();
+            renderTeamStandings();
+        }
+
+        function onSelectResEvent() {
+            const evId = document.getElementById('resEventSelect').value;
+            const evObj = AVAILABLE_EVENTS.find(e => e.id === evId);
+            const unitLabel = document.getElementById('unitLabel');
+            const saveBtn = document.getElementById('saveResultBtn');
+            const noticeBox = document.getElementById('refereePermissionNotice');
+
+            if (currentUser.role === 'referee' && currentUser.assignedEvent && currentUser.assignedEvent !== evId) {
+                if (saveBtn) saveBtn.disabled = true;
+                if (noticeBox) {
+                    noticeBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1"></i> <b>Lưu ý phân quyền:</b> Bạn là Trọng tài phụ trách nội dung <b>${AVAILABLE_EVENTS.find(e=>e.id===currentUser.assignedEvent)?.name}</b>. Bạn chỉ có quyền xem nội dung này.`;
+                    noticeBox.classList.remove('hidden');
+                }
+            } else {
+                if (saveBtn) saveBtn.disabled = false;
+                if (noticeBox) noticeBox.classList.add('hidden');
+            }
+
+            if(evObj) {
+                unitLabel.innerText = evObj.unitType === 'time' ? 'giây hoặc phút:giây.ms' : 'mét (VD: 5.85)';
+            }
+            onSelectResRound();
+        }
+
+        function onSelectResRound() {
+            const evId = document.getElementById('resEventSelect').value;
+            const round = document.getElementById('resRoundSelect').value;
+            const key = `${evId}_${round}`;
+            const drawKey = `${evId}_${round}`;
+
+            const tbody = document.getElementById('resultTableBody');
+            const finalBox = document.getElementById('finalQualificationBox');
+
+            if (round === 'Vòng loại' && currentUser.role === 'admin') {
+                finalBox.classList.remove('hidden');
+            } else {
+                finalBox.classList.add('hidden');
+            }
+
+            let listAthletes = [];
+            if(draws[drawKey] && draws[drawKey].length > 0) {
+                draws[drawKey].forEach(h => {
+                    h.athletes.forEach(a => {
+                        listAthletes.push({ ...a, heatIndex: h.heatIndex, lane: a.lane });
+                    });
+                });
+            } else {
+                listAthletes = athletes.filter(a => a.eventId === evId).map((a, idx) => ({ ...a, heatIndex: 1, lane: idx + 1 }));
+            }
+
+            const savedRes = results[key] || {};
+            const resData = savedRes.resultsData || {};
+            const statusData = savedRes.statusData || {};
+            const isPublic = savedRes.isPublic || false;
+            
+            const publishBtnContainer = document.getElementById('publishControlContainer');
+            if (publishBtnContainer) {
+                if (currentUser.role === 'admin') {
+                    publishBtnContainer.classList.remove('hidden');
+                    publishBtnContainer.innerHTML = `
+                        <button onclick="togglePublishResult('${evId}', '${round}')" class="px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition flex items-center gap-2 ${isPublic ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}">
+                            <i class="fa-solid ${isPublic ? 'fa-globe' : 'fa-lock'}"></i> ${isPublic ? 'Trạng thái: Đã công khai' : 'Trạng thái: Chưa công khai'}
+                        </button>
+                    `;
+                } else {
+                    publishBtnContainer.classList.add('hidden');
+                }
+            }
+
+            const isViewer = currentUser.role === 'viewer';
+            const isRefereeReadOnly = currentUser.role === 'referee' && currentUser.assignedEvent !== evId;
+            const isReadOnly = isViewer || isRefereeReadOnly;
+
+            tbody.innerHTML = '';
+            if(listAthletes.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Không có vận động viên nào đăng ký vòng thi đấu này.</td></tr>`;
+                return;
+            }
+
+            listAthletes.forEach(a => {
+                const val = resData[a.id] !== undefined ? resData[a.id] : '';
+                const stVal = statusData[a.id] !== undefined ? statusData[a.id] : 'OK';
+                const rankObj = (savedRes.ranking || []).find(r => r.id == a.id);
+                const rankText = rankObj ? (rankObj.rank ? `#${rankObj.rank}` : rankObj.status) : '-';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3 text-center font-bold text-blue-700">${a.bib}</td>
+                        <td class="p-3 font-semibold text-slate-800">${a.name}</td>
+                        <td class="p-3 font-mono text-xs text-slate-600">${a.cccd || '-'}</td>
+                        <td class="p-3 text-slate-700">${a.unit || '-'}</td>
+                        <td class="p-3"><span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-xs font-semibold">${a.className || '-'}</span></td>
+                        <td class="p-3 text-center text-xs font-semibold text-slate-600">Đợt ${a.heatIndex || 1} - Ô ${a.lane || '-'}</td>
+                        <td class="p-3">
+                            <input type="text" data-athlete-id="${a.id}" value="${val}" ${isReadOnly ? 'disabled' : ''} placeholder="Chưa có kết quả" class="res-input w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none ${isReadOnly ? 'bg-slate-100 text-slate-700 font-semibold' : 'bg-white'}">
+                        </td>
+                        <td class="p-3">
+                            <select data-status-id="${a.id}" ${isReadOnly ? 'disabled' : ''} class="status-select w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white font-semibold ${isReadOnly ? 'bg-slate-100 text-slate-700' : ''}">
+                                <option value="OK" ${stVal === 'OK' ? 'selected' : ''}>Hợp lệ (OK)</option>
+                                <option value="DNS" ${stVal === 'DNS' ? 'selected' : ''}>DNS (Bỏ cuộc)</option>
+                                <option value="DNF" ${stVal === 'DNF' ? 'selected' : ''}>DNF (Chưa xong)</option>
+                                <option value="DQ" ${stVal === 'DQ' ? 'selected' : ''}>DQ (Phạm quy)</option>
+                            </select>
+                        </td>
+                        <td class="p-3 text-center font-bold text-blue-700" id="rank-col-${a.id}">${rankText}</td>
+                    </tr>
+                `;
+            });
+
+            renderRankingDisplay(savedRes.ranking || [], isPublic);
+        }
+
+        function togglePublishResult(evId, round) {
+            if (currentUser.role !== 'admin') return;
+            const key = `${evId}_${round}`;
+            if (!results[key]) {
+                results[key] = { resultsData: {}, statusData: {}, ranking: [], isPublic: false };
+            }
+            results[key].isPublic = !results[key].isPublic;
+            saveData();
+            onSelectResRound();
+            showToast(results[key].isPublic ? 'Đã công khai kết quả nội dung này cho khán giả!' : 'Đã chuyển nội dung về trạng thái Chưa công khai!');
+        }
+
+        function parsePerformanceToScore(str, unitType) {
+            if (!str || str.trim() === '') return null;
+            str = str.trim();
+            if (unitType === 'time') {
+                if (str.includes(':')) {
+                    const parts = str.split(':');
+                    const mins = parseFloat(parts[0]) || 0;
+                    const secsParts = parts[1].split('.');
+                    const secs = parseFloat(secsParts[0]) || 0;
+                    const ms = secsParts[1] ? parseFloat(secsParts[1].padEnd(3, '0')) : 0;
+                    return mins * 60000 + secs * 1000 + ms;
+                } else {
+                    const secsParts = str.split('.');
+                    const secs = parseFloat(secsParts[0]) || 0;
+                    const ms = secsParts[1] ? parseFloat(secsParts[1].padEnd(3, '0')) : 0;
+                    return secs * 1000 + ms;
+                }
+            } else {
+                return parseFloat(str) || 0;
+            }
+        }
+
+        function saveResultsData() {
+            if (currentUser.role === 'viewer') return;
+            const evId = document.getElementById('resEventSelect').value;
+            if (currentUser.role === 'referee' && currentUser.assignedEvent !== evId) {
+                showToast('Bạn không có quyền sửa kết quả nội dung này!', true);
+                return;
+            }
+
+            const round = document.getElementById('resRoundSelect').value;
+            const evObj = AVAILABLE_EVENTS.find(e => e.id === evId);
+            const key = `${evId}_${round}`;
+            const currentIsPublic = results[key] ? !!results[key].isPublic : false;
+
+            const inputs = document.querySelectorAll('.res-input');
+            let resData = {};
+            let statusData = {};
+            let validScores = [];
+            let invalidList = [];
+
+            inputs.forEach(input => {
+                const athId = input.getAttribute('data-athlete-id');
+                const val = input.value.trim();
+                const statusEl = document.querySelector(`.status-select[data-status-id="${athId}"]`);
+                const st = statusEl ? statusEl.value : 'OK';
+
+                resData[athId] = val;
+                statusData[athId] = st;
+
+                const athObj = athletes.find(a => a.id == athId);
+                if(!athObj) return;
+
+                if(st !== 'OK') {
+                    invalidList.push({
+                        id: athObj.id, bib: athObj.bib, name: athObj.name, unit: athObj.unit, className: athObj.className,
+                        raw: st, status: st, rank: null
+                    });
+                } else {
+                    const numericScore = parsePerformanceToScore(val, evObj.unitType);
+                    if(numericScore !== null) {
+                        validScores.push({
+                            id: athObj.id, bib: athObj.bib, name: athObj.name, unit: athObj.unit, className: athObj.className,
+                            raw: val, score: numericScore, status: 'OK'
+                        });
+                    }
+                }
+            });
+
+            validScores.sort((a, b) => {
+                return evObj.unitType === 'time' ? (a.score - b.score) : (b.score - a.score);
+            });
+
+            let ranking = validScores.map((item, idx) => ({ ...item, rank: idx + 1 })).concat(invalidList);
+
+            results[key] = { resultsData: resData, statusData: statusData, ranking: ranking, isPublic: currentIsPublic };
+            saveData();
+
+            ranking.forEach(r => {
+                const cell = document.getElementById(`rank-col-${r.id}`);
+                if(cell) cell.innerText = r.rank ? `#${r.rank}` : r.status;
+            });
+
+            renderRankingDisplay(ranking, currentIsPublic);
+            renderTeamStandings();
+            showToast('Đã lưu thành tích và cập nhật bảng xếp hạng!');
+
+            const autoAdvance = document.getElementById('autoAdvanceCheck').checked;
+            if(round === 'Vòng loại' && autoAdvance && validScores.length > 0) {
+                const topCount = parseInt(document.getElementById('topCountInput').value) || 8;
+                createFinalSeedingFromPrelim(evId, validScores, topCount);
+            }
+        }
+
+        function generateFinalRoundManual() {
+            const evId = document.getElementById('resEventSelect').value;
+            const key = `${evId}_Vòng loại`;
+            const savedRes = results[key];
+            if (!savedRes || !savedRes.ranking || savedRes.ranking.length === 0) {
+                showToast('Chưa có kết quả Vòng loại hợp lệ để lập danh sách Chung kết!', true);
+                return;
+            }
+            const validScores = savedRes.ranking.filter(r => r.rank !== null && r.rank !== undefined);
+            if (validScores.length === 0) {
+                showToast('Không tìm thấy VĐV có thành tích hợp lệ ở vòng loại!', true);
+                return;
+            }
+            const topCount = parseInt(document.getElementById('topCountInput').value) || 8;
+            createFinalSeedingFromPrelim(evId, validScores, topCount);
+            showToast(`Đã lập danh sách Chung kết thành công (${Math.min(topCount, validScores.length)} VĐV)!`);
+        }
+
+        function createFinalSeedingFromPrelim(evId, validScores, topCount) {
+            const finalAthletesCount = Math.min(topCount, validScores.length);
+            const topQualified = validScores.slice(0, finalAthletesCount);
+            const finalAthletes = topQualified.map(q => {
+                const ath = athletes.find(a => a.id == q.id);
+                return ath ? { ...ath, qualifyMark: q.raw } : null;
+            }).filter(Boolean);
+
+            const lanePriority = getCenterLanePriorityOrder();
+            finalAthletes.sort((a, b) => {
+                const scoreA = topQualified.find(q => q.id == a.id)?.score || 0;
+                const scoreB = topQualified.find(q => q.id == b.id)?.score || 0;
+                return AVAILABLE_EVENTS.find(e => e.id === evId)?.unitType === 'time' ? scoreA - scoreB : scoreB - scoreA;
+            });
+
+            const assignedLanes = lanePriority.slice(0, finalAthletes.length);
+            finalAthletes.forEach((ath, i) => {
+                ath.lane = assignedLanes[i] || (i + 1);
+            });
+            finalAthletes.sort((a, b) => a.lane - b.lane);
+
+            const finalKey = `${evId}_Chung kết`;
+            draws[finalKey] = [{ heatIndex: 1, mode: 'heat_and_lane', athletes: finalAthletes }];
+            saveData();
+        }
+
+        function renderRankingDisplay(ranking, isPublic = true) {
+            const tbody = document.getElementById('rankingTableBody');
+            const round = document.getElementById('resRoundSelect').value;
+            const topCount = parseInt(document.getElementById('topCountInput').value) || 8;
+            const badge = document.getElementById('rankStatusBadge');
+
+            if (currentUser.role === 'viewer' && !isPublic) {
+                badge.innerText = 'Chưa công khai';
+                badge.className = 'text-xs bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-semibold';
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-amber-700 bg-amber-50 font-medium"><i class="fa-solid fa-lock mr-2"></i> Kết quả nội dung này đang được Ban tổ chức kiểm duyệt và chưa được công khai.</td></tr>`;
+                return;
+            }
+
+            badge.innerText = isPublic ? 'Đã công khai chính thức' : 'Chưa công khai (Nội bộ)';
+            badge.className = isPublic ? 'text-xs bg-emerald-200 text-emerald-900 px-2.5 py-0.5 rounded-full font-semibold' : 'text-xs bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full font-semibold';
+
+            tbody.innerHTML = '';
+            if(!ranking || ranking.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">Nội dung này chưa có kết quả thi đấu hoặc chưa được cập nhật.</td></tr>`;
+                return;
+            }
+
+            ranking.forEach(r => {
+                let badgeClass = 'bg-slate-100 text-slate-700';
+                let noteHtml = '-';
+
+                if(r.rank === 1) badgeClass = 'bg-amber-100 text-amber-800 font-bold border border-amber-300';
+                else if(r.rank === 2) badgeClass = 'bg-slate-200 text-slate-800 font-bold border border-slate-300';
+                else if(r.rank === 3) badgeClass = 'bg-orange-100 text-orange-800 font-bold border border-orange-300';
+
+                if(!r.rank) {
+                    noteHtml = `<span class="text-xs font-semibold text-rose-600">${r.status}</span>`;
+                } else if(round === 'Vòng loại') {
+                    if(r.rank <= topCount) {
+                        noteHtml = `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs font-bold">Vào Chung kết (Q)</span>`;
+                    } else {
+                        noteHtml = `<span class="text-xs text-slate-400">Dừng bước</span>`;
+                    }
+                } else {
+                    if(r.rank === 1) noteHtml = `<span class="text-xs font-bold text-amber-600"><i class="fa-solid fa-medal mr-1"></i>Huy chương Vàng</span>`;
+                    else if(r.rank === 2) noteHtml = `<span class="text-xs font-bold text-slate-600"><i class="fa-solid fa-medal mr-1"></i>Huy chương Bạc</span>`;
+                    else if(r.rank === 3) noteHtml = `<span class="text-xs font-bold text-orange-700"><i class="fa-solid fa-medal mr-1"></i>Huy chương Đồng</span>`;
+                    else if(r.rank <= 10) noteHtml = `<span class="text-xs text-blue-600 font-medium">Top ${r.rank} (Có điểm đoàn)</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3 text-center"><span class="px-2.5 py-1 rounded-lg text-xs ${badgeClass}">${r.rank ? '#' + r.rank : r.status}</span></td>
+                        <td class="p-3 text-center font-bold text-blue-700">${r.bib || '-'}</td>
+                        <td class="p-3 font-semibold text-slate-800">${r.name}</td>
+                        <td class="p-3 text-xs text-slate-600">${r.unit || '-'} <span class="font-bold text-indigo-700">(${r.className || '-'})</span></td>
+                        <td class="p-3 text-center font-bold text-blue-700">${r.raw}</td>
+                        <td class="p-3 text-center">${noteHtml}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderTeamStandings() {
+            const groupField = document.getElementById('standingsGroupSelect').value;
+            const tbody = document.getElementById('teamStandingsBody');
+
+            const ptsByRank = {
+                1: config.pts1 !== undefined ? Number(config.pts1) : 11,
+                2: config.pts2 !== undefined ? Number(config.pts2) : 9,
+                3: config.pts3 !== undefined ? Number(config.pts3) : 8,
+                4: config.pts4 !== undefined ? Number(config.pts4) : 7,
+                5: config.pts5 !== undefined ? Number(config.pts5) : 6,
+                6: config.pts6 !== undefined ? Number(config.pts6) : 5,
+                7: config.pts7 !== undefined ? Number(config.pts7) : 4,
+                8: config.pts8 !== undefined ? Number(config.pts8) : 3,
+                9: config.pts9 !== undefined ? Number(config.pts9) : 2,
+                10: config.pts10 !== undefined ? Number(config.pts10) : 1
+            };
+
+            let map = {};
+
+            Object.keys(results).forEach(key => {
+                if(key.endsWith('_Chung kết')) {
+                    const ranking = results[key].ranking || [];
+                    ranking.forEach(r => {
+                        if(!r.rank || r.rank > 10) return;
+                        const groupKey = r[groupField] || 'Khác';
+                        if(!map[groupKey]) {
+                            map[groupKey] = { name: groupKey, gold: 0, silver: 0, bronze: 0, points: 0 };
+                        }
+                        if(r.rank === 1) map[groupKey].gold++;
+                        else if(r.rank === 2) map[groupKey].silver++;
+                        else if(r.rank === 3) map[groupKey].bronze++;
+
+                        map[groupKey].points += (ptsByRank[r.rank] || 0);
+                    });
+                }
+            });
+
+            let list = Object.values(map);
+            list.sort((a, b) => b.points - a.points || b.gold - a.gold || b.silver - a.silver || b.bronze - a.bronze);
+
+            tbody.innerHTML = '';
+            if(list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-5 text-center text-slate-400">Chưa có kết quả Vòng Chung kết nào.</td></tr>`;
+                return;
+            }
+
+            list.forEach((item, idx) => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2.5 text-center font-bold text-slate-600">${idx + 1}</td>
+                        <td class="p-2.5 font-semibold text-slate-800">${item.name}</td>
+                        <td class="p-2.5 text-center font-bold text-amber-600">${item.gold}</td>
+                        <td class="p-2.5 text-center font-bold text-slate-600">${item.silver}</td>
+                        <td class="p-2.5 text-center font-bold text-orange-700">${item.bronze}</td>
+                        <td class="p-2.5 text-center font-bold text-blue-700 bg-blue-50/40">${item.points}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function applyConfigToUI() {
+            document.getElementById('headerTourName').innerText = config.tourName;
+            document.getElementById('headerTourInfo').innerHTML = `
+                <span><i class="fa-regular fa-calendar mr-1"></i> ${config.tourDate}</span>
+                <span><i class="fa-solid fa-location-dot mr-1"></i> ${config.tourLocation}</span>
+                <span class="bg-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Sân ${config.trackLanes} làn chuẩn</span>
+            `;
+        }
+
+        function renderUnitClassMappingUI() {
+            if (currentUser.role === 'viewer') return;
+            const container = document.getElementById('unitClassMappingContainer');
+            const bulkTextarea = document.getElementById('cfgUnitClassBulkText');
+            if (!container) return;
+
+            const mapList = config.unitClassMap || [];
+            if (mapList.length === 0) {
+                container.innerHTML = `<div class="text-xs text-slate-400 italic p-3 text-center bg-slate-50 rounded-lg">Chưa có đơn vị nào được cấu hình.</div>`;
+            } else {
+                container.innerHTML = mapList.map((item, idx) => `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:border-indigo-200 transition">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="px-2.5 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold">${item.unit}</span>
+                            <i class="fa-solid fa-arrow-right text-slate-400 text-xs mx-1"></i>
+                            ${(item.classes || []).map(c => `<span class="px-2 py-0.5 bg-white border border-slate-300 text-slate-700 rounded-md text-xs font-medium">${c}</span>`).join('')}
+                        </div>
+                        <div class="flex items-center gap-1 self-end sm:self-center">
+                            <button onclick="editUnitMapping(${idx})" class="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded text-xs font-medium" title="Sửa"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="removeUnitMapping(${idx})" class="text-rose-600 hover:bg-rose-50 px-2 py-1 rounded text-xs font-medium" title="Xóa"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            if (bulkTextarea) {
+                bulkTextarea.value = mapList.map(m => `${m.unit}: ${(m.classes || []).join(', ')}`).join('\n');
+            }
+        }
+
+        function addOrUpdateUnitMapping() {
+            if (currentUser.role === 'viewer') return;
+            const unitInput = document.getElementById('newUnitNameInput');
+            const classesInput = document.getElementById('newUnitClassesInput');
+            const unitName = unitInput.value.trim();
+            const classesArr = classesInput.value.split(',').map(s => s.trim()).filter(Boolean);
+
+            if (!unitName) {
+                showToast('Vui lòng nhập Tên Đơn vị (VD: Cụm_01)!', true);
+                return;
+            }
+            if (classesArr.length === 0) {
+                showToast('Vui lòng nhập ít nhất 1 Lớp thuộc Đơn vị này!', true);
+                return;
+            }
+
+            if (!config.unitClassMap) config.unitClassMap = [];
+            const existingIdx = config.unitClassMap.findIndex(m => m.unit.toLowerCase() === unitName.toLowerCase());
+            if (existingIdx >= 0) {
+                config.unitClassMap[existingIdx].unit = unitName;
+                config.unitClassMap[existingIdx].classes = classesArr;
+                showToast(`Đã cập nhật danh sách lớp cho đơn vị "${unitName}"!`);
+            } else {
+                config.unitClassMap.push({ unit: unitName, classes: classesArr });
+                showToast(`Đã thêm đơn vị "${unitName}" kèm ${classesArr.length} lớp!`);
+            }
+
+            unitInput.value = '';
+            classesInput.value = '';
+            saveData();
+            renderUnitClassMappingUI();
+            populateUnitAndClassFilters();
+        }
+
+        function editUnitMapping(idx) {
+            const item = (config.unitClassMap || [])[idx];
+            if (!item) return;
+            document.getElementById('newUnitNameInput').value = item.unit;
+            document.getElementById('newUnitClassesInput').value = (item.classes || []).join(', ');
+            document.getElementById('newUnitNameInput').focus();
+        }
+
+        function removeUnitMapping(idx) {
+            if (!config.unitClassMap) return;
+            const removed = config.unitClassMap.splice(idx, 1);
+            saveData();
+            renderUnitClassMappingUI();
+            populateUnitAndClassFilters();
+            showToast(`Đã xóa đơn vị "${removed[0] ? removed[0].unit : ''}"!`);
+        }
+
+        function parseBulkTextToUnitClassMap(rawText) {
+            const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+            const result = [];
+            lines.forEach(line => {
+                const colonIdx = line.indexOf(':');
+                if (colonIdx !== -1) {
+                    const unit = line.slice(0, colonIdx).trim();
+                    const classesStr = line.slice(colonIdx + 1).trim();
+                    const classes = classesStr.split(',').map(c => c.trim()).filter(Boolean);
+                    if (unit) result.push({ unit, classes });
+                } else {
+                    result.push({ unit: line, classes: [] });
+                }
+            });
+            return result;
+        }
+
+        function saveUnitClassFromTextarea() {
+            if (currentUser.role === 'viewer') return;
+            const bulkTextarea = document.getElementById('cfgUnitClassBulkText');
+            if (!bulkTextarea) return;
+            config.unitClassMap = parseBulkTextToUnitClassMap(bulkTextarea.value);
+            saveData();
+            renderUnitClassMappingUI();
+            populateUnitAndClassFilters();
+            showToast('Đã cập nhật danh mục Đơn vị và các Lớp tương ứng!');
+        }
+
+        function loadConfigForm() {
+            if (currentUser.role === 'viewer') return;
+            document.getElementById('cfgTourName').value = config.tourName || '';
+            document.getElementById('cfgTourDate').value = config.tourDate || '';
+            document.getElementById('cfgTourLocation').value = config.tourLocation || '';
+            document.getElementById('cfgTrackLanes').value = config.trackLanes || 8;
+            document.getElementById('cfgDefaultFinalists').value = config.defaultFinalists || 8;
+            document.getElementById('cfgPts1').value = config.pts1 !== undefined ? config.pts1 : 11;
+            document.getElementById('cfgPts2').value = config.pts2 !== undefined ? config.pts2 : 9;
+            document.getElementById('cfgPts3').value = config.pts3 !== undefined ? config.pts3 : 8;
+            document.getElementById('cfgPts4').value = config.pts4 !== undefined ? config.pts4 : 7;
+            document.getElementById('cfgPts5').value = config.pts5 !== undefined ? config.pts5 : 6;
+            document.getElementById('cfgPts6').value = config.pts6 !== undefined ? config.pts6 : 5;
+            document.getElementById('cfgPts7').value = config.pts7 !== undefined ? config.pts7 : 4;
+            document.getElementById('cfgPts8').value = config.pts8 !== undefined ? config.pts8 : 3;
+            document.getElementById('cfgPts9').value = config.pts9 !== undefined ? config.pts9 : 2;
+            document.getElementById('cfgPts10').value = config.pts10 !== undefined ? config.pts10 : 1;
+            const sheetUrlEl = document.getElementById('cfgGoogleSheetUrl');
+            if (sheetUrlEl) sheetUrlEl.value = config.googleSheetUrl || '';
+            const autoSyncEl = document.getElementById('cfgAutoSyncSheet');
+            if (autoSyncEl) autoSyncEl.checked = !!config.autoSyncSheet;
+            updateSheetSyncBadge();
+            renderUnitClassMappingUI();
+        }
+
+        function saveTournamentConfig() {
+            if (currentUser.role === 'viewer') return;
+            config.tourName = document.getElementById('cfgTourName').value.trim() || DEFAULT_CONFIG.tourName;
+            config.tourDate = document.getElementById('cfgTourDate').value.trim() || DEFAULT_CONFIG.tourDate;
+            config.tourLocation = document.getElementById('cfgTourLocation').value.trim() || DEFAULT_CONFIG.tourLocation;
+            config.trackLanes = parseInt(document.getElementById('cfgTrackLanes').value) || 8;
+            config.defaultFinalists = parseInt(document.getElementById('cfgDefaultFinalists').value) || 8;
+            
+            const getPt = (id, fallback) => {
+                const val = parseInt(document.getElementById(id).value);
+                return isNaN(val) ? fallback : val;
+            };
+            config.pts1 = getPt('cfgPts1', 11);
+            config.pts2 = getPt('cfgPts2', 9);
+            config.pts3 = getPt('cfgPts3', 8);
+            config.pts4 = getPt('cfgPts4', 7);
+            config.pts5 = getPt('cfgPts5', 6);
+            config.pts6 = getPt('cfgPts6', 5);
+            config.pts7 = getPt('cfgPts7', 4);
+            config.pts8 = getPt('cfgPts8', 3);
+            config.pts9 = getPt('cfgPts9', 2);
+            config.pts10 = getPt('cfgPts10', 1);
+
+            const sheetUrlEl = document.getElementById('cfgGoogleSheetUrl');
+            if (sheetUrlEl) config.googleSheetUrl = sheetUrlEl.value.trim();
+            const autoSyncEl = document.getElementById('cfgAutoSyncSheet');
+            if (autoSyncEl) config.autoSyncSheet = autoSyncEl.checked;
+
+            const bulkTextarea = document.getElementById('cfgUnitClassBulkText');
+            if (bulkTextarea && bulkTextarea.value.trim()) {
+                config.unitClassMap = parseBulkTextToUnitClassMap(bulkTextarea.value);
+            }
+
+            saveData();
+            applyConfigToUI();
+            updateSheetSyncBadge();
+            renderUnitClassMappingUI();
+            populateUnitAndClassFilters();
+            renderTeamStandings();
+            showToast('Đã lưu cấu hình giải đấu thành công!');
+        }
+
+        function updateSheetSyncBadge(statusText = null, isOnline = null) {
+            const badge = document.getElementById('sheetSyncStatus');
+            if (!badge) return;
+            if (statusText) {
+                badge.innerText = statusText;
+                badge.className = isOnline
+                    ? 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold'
+                    : 'text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold';
+                return;
+            }
+            if (config.googleSheetUrl) {
+                badge.innerText = 'Đã cấu hình Google Sheet';
+                badge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold';
+            } else {
+                badge.innerText = 'Lưu trang tính cục bộ (.xlsx)';
+                badge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium';
+            }
+        }
+
+        function toggleAutoSyncSheet() {
+            if (currentUser.role === 'viewer') return;
+            const urlEl = document.getElementById('cfgGoogleSheetUrl');
+            const chkEl = document.getElementById('cfgAutoSyncSheet');
+            if (urlEl) config.googleSheetUrl = urlEl.value.trim();
+            if (chkEl) config.autoSyncSheet = chkEl.checked;
+            saveData();
+            updateSheetSyncBadge();
+            if (config.autoSyncSheet && config.googleSheetUrl) {
+                showToast('Đã bật tự động đồng bộ lên Google Trang tính!');
+            }
+        }
+
+        function buildSpreadsheetRows() {
+            const sheetVDV = [['ID', 'Số BIB', 'Họ và tên', 'CCCD (12 số)', 'Giới tính', 'Đơn vị', 'Lớp', 'Mã nội dung', 'Tên nội dung']];
+            athletes.forEach(a => {
+                const evObj = AVAILABLE_EVENTS.find(e => e.id === a.eventId);
+                sheetVDV.push([
+                    a.id, a.bib, a.name, a.cccd || '', a.gender, a.unit || '', a.className || '', a.eventId, evObj ? evObj.name : a.eventId
+                ]);
+            });
+
+            const sheetLich = [['ID', 'Mã nội dung', 'Tên nội dung', 'Vòng thi đấu', 'Thời gian', 'Địa điểm', 'Trạng thái']];
+            schedule.forEach(s => {
+                const evObj = AVAILABLE_EVENTS.find(e => e.id === s.eventId);
+                sheetLich.push([
+                    s.id, s.eventId, evObj ? evObj.name : s.eventId, s.round, s.time, s.location, s.status || 'Sắp diễn ra'
+                ]);
+            });
+
+            const sheetBocTham = [['Khóa vòng thi', 'Mã nội dung', 'Vòng thi đấu', 'Đợt chạy', 'Chế độ bốc thăm', 'Ô / Thứ tự', 'ID VĐV', 'Số BIB', 'Họ và tên', 'CCCD', 'Đơn vị', 'Lớp', 'Thành tích VL']];
+            Object.keys(draws).forEach(key => {
+                const lastUnderscore = key.lastIndexOf('_');
+                const evId = key.slice(0, lastUnderscore);
+                const round = key.slice(lastUnderscore + 1);
+                const heats = draws[key] || [];
+                heats.forEach(h => {
+                    (h.athletes || []).forEach(ath => {
+                        sheetBocTham.push([
+                            key, evId, round, h.heatIndex, h.mode || 'heat_and_lane', ath.lane, ath.id, ath.bib, ath.name, ath.cccd || '', ath.unit || '', ath.className || '', ath.qualifyMark || ''
+                        ]);
+                    });
+                });
+            });
+
+            const sheetKetQua = [['Khóa vòng thi', 'Mã nội dung', 'Vòng thi đấu', 'Hạng', 'ID VĐV', 'Số BIB', 'Họ và tên', 'Đơn vị', 'Lớp', 'Thành tích', 'Trạng thái', 'Công khai']];
+            Object.keys(results).forEach(key => {
+                const lastUnderscore = key.lastIndexOf('_');
+                const evId = key.slice(0, lastUnderscore);
+                const round = key.slice(lastUnderscore + 1);
+                const isPub = results[key]?.isPublic ? 'YES' : 'NO';
+                const ranking = results[key]?.ranking || [];
+                ranking.forEach(r => {
+                    sheetKetQua.push([
+                        key, evId, round, r.rank || '', r.id, r.bib || '', r.name, r.unit || '', r.className || '', r.raw || '', r.status || 'OK', isPub
+                    ]);
+                });
+            });
+
+            const sheetDonVi = [['Đơn vị', 'Danh sách Lớp thuộc Đơn vị (cách nhau dấu phẩy)']];
+            (config.unitClassMap || []).forEach(m => {
+                sheetDonVi.push([m.unit, (m.classes || []).join(', ')]);
+            });
+
+            const sheetCauHinh = [
+                ['Tham số cấu hình', 'Giá trị'],
+                ['tourName', config.tourName],
+                ['tourDate', config.tourDate],
+                ['tourLocation', config.tourLocation],
+                ['trackLanes', config.trackLanes],
+                ['defaultFinalists', config.defaultFinalists],
+                ['pts1', config.pts1], ['pts2', config.pts2], ['pts3', config.pts3], ['pts4', config.pts4], ['pts5', config.pts5],
+                ['pts6', config.pts6], ['pts7', config.pts7], ['pts8', config.pts8], ['pts9', config.pts9], ['pts10', config.pts10]
+            ];
+
+            return {
+                'Danh_Sach_VDV': sheetVDV,
+                'Lich_Thi_Dau': sheetLich,
+                'Boc_Tham_Dot_O': sheetBocTham,
+                'Ket_Qua_Xep_Hang': sheetKetQua,
+                'Don_Vi_Lop': sheetDonVi,
+                'Cau_Hinh': sheetCauHinh
+            };
+        }
+
+        function exportDataExcel() {
+            if (typeof XLSX === 'undefined') {
+                showToast('Thư viện trang tính đang tải, vui lòng thử lại sau giây lát!', true);
+                return;
+            }
+            const sheetsData = buildSpreadsheetRows();
+            const wb = XLSX.utils.book_new();
+
+            Object.keys(sheetsData).forEach(sheetName => {
+                const ws = XLSX.utils.aoa_to_sheet(sheetsData[sheetName]);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+
+            XLSX.writeFile(wb, 'Quan_Ly_Giai_Dien_Kinh_Data.xlsx');
+            showToast('Đã xuất dữ liệu ra tệp Trang tính (.XLSX) thành công!');
+        }
+
+        function downloadSampleExcelTemplate() {
+            if (typeof XLSX === 'undefined') {
+                showToast('Thư viện trang tính đang tải, vui lòng thử lại!', true);
+                return;
+            }
+            const sheetsData = buildSpreadsheetRows();
+            const wb = XLSX.utils.book_new();
+
+            Object.keys(sheetsData).forEach(sheetName => {
+                const ws = XLSX.utils.aoa_to_sheet(sheetsData[sheetName]);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+
+            XLSX.writeFile(wb, 'Mau_Trang_Tinh_Giai_Dien_Kinh.xlsx');
+            showToast('Đã tạo và tải tệp Trang tính mẫu (.XLSX) thành công!');
+        }
+
+        function importDataExcel(event) {
+            if (currentUser.role === 'viewer') return;
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+
+                    const vdvSheetName = wb.SheetNames.includes('Danh_Sach_VDV') ? 'Danh_Sach_VDV' : wb.SheetNames[0];
+                    if (vdvSheetName) {
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets[vdvSheetName], { header: 1 });
+                        if (rows.length > 1) {
+                            const importedAthletes = [];
+                            rows.slice(1).forEach((r, idx) => {
+                                if (!r || r.length < 3 || !r[2]) return;
+                                const rawEv = String(r[7] || r[8] || '100m_nam').trim();
+                                const matchedEv = AVAILABLE_EVENTS.find(ev => ev.id === rawEv || ev.name.toLowerCase() === rawEv.toLowerCase());
+                                importedAthletes.push({
+                                    id: Number(r[0]) || (idx + 1),
+                                    bib: String(r[1] || (101 + idx)).trim(),
+                                    name: String(r[2] || '').trim(),
+                                    cccd: String(r[3] || '').trim(),
+                                    gender: String(r[4] || 'Nam').trim() === 'Nữ' ? 'Nữ' : 'Nam',
+                                    unit: String(r[5] || '').trim(),
+                                    className: String(r[6] || '').trim(),
+                                    eventId: matchedEv ? matchedEv.id : '100m_nam'
+                                });
+                            });
+                            if (importedAthletes.length > 0) athletes = importedAthletes;
+                        }
+                    }
+
+                    if (wb.SheetNames.includes('Lich_Thi_Dau')) {
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets['Lich_Thi_Dau'], { header: 1 });
+                        const importedSchedule = [];
+                        rows.slice(1).forEach((r, idx) => {
+                            if (!r || !r[1]) return;
+                            importedSchedule.push({
+                                id: Number(r[0]) || (idx + 1),
+                                eventId: String(r[1]).trim(),
+                                round: String(r[3] || 'Vòng loại').trim(),
+                                time: String(r[4] || '').trim(),
+                                location: String(r[5] || '').trim(),
+                                status: String(r[6] || 'Sắp diễn ra').trim()
+                            });
+                        });
+                        if (importedSchedule.length > 0) schedule = importedSchedule;
+                    }
+
+                    if (wb.SheetNames.includes('Boc_Tham_Dot_O')) {
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets['Boc_Tham_Dot_O'], { header: 1 });
+                        const newDraws = {};
+                        rows.slice(1).forEach(r => {
+                            if (!r || !r[0]) return;
+                            const key = String(r[0]).trim();
+                            const heatIdx = Number(r[3]) || 1;
+                            const mode = String(r[4] || 'heat_and_lane').trim();
+                            if (!newDraws[key]) newDraws[key] = [];
+                            let heatObj = newDraws[key].find(h => h.heatIndex === heatIdx);
+                            if (!heatObj) {
+                                heatObj = { heatIndex: heatIdx, mode: mode, athletes: [] };
+                                newDraws[key].push(heatObj);
+                            }
+                            heatObj.athletes.push({
+                                lane: Number(r[5]) || 1,
+                                id: Number(r[6]),
+                                bib: String(r[7] || ''),
+                                name: String(r[8] || ''),
+                                cccd: String(r[9] || ''),
+                                unit: String(r[10] || ''),
+                                className: String(r[11] || ''),
+                                qualifyMark: String(r[12] || '')
+                            });
+                        });
+                        if (Object.keys(newDraws).length > 0) draws = newDraws;
+                    }
+
+                    if (wb.SheetNames.includes('Ket_Qua_Xep_Hang')) {
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets['Ket_Qua_Xep_Hang'], { header: 1 });
+                        const newResults = {};
+                        rows.slice(1).forEach(r => {
+                            if (!r || !r[0]) return;
+                            const key = String(r[0]).trim();
+                            if (!newResults[key]) {
+                                newResults[key] = { resultsData: {}, statusData: {}, ranking: [], isPublic: false };
+                            }
+                            const athId = Number(r[4]);
+                            const rawMark = String(r[9] || '').trim();
+                            const status = String(r[10] || 'OK').trim();
+                            const isPub = String(r[11] || '').trim() === 'YES';
+                            newResults[key].isPublic = isPub;
+                            newResults[key].resultsData[athId] = rawMark;
+                            newResults[key].statusData[athId] = status;
+                            newResults[key].ranking.push({
+                                rank: r[3] ? Number(r[3]) : null,
+                                id: athId,
+                                bib: String(r[5] || ''),
+                                name: String(r[6] || ''),
+                                unit: String(r[7] || ''),
+                                className: String(r[8] || ''),
+                                raw: rawMark,
+                                status: status
+                            });
+                        });
+                        if (Object.keys(newResults).length > 0) results = newResults;
+                    }
+
+                    if (wb.SheetNames.includes('Don_Vi_Lop')) {
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets['Don_Vi_Lop'], { header: 1 });
+                        const newMap = [];
+                        rows.slice(1).forEach(r => {
+                            if (!r || !r[0]) return;
+                            const unit = String(r[0]).trim();
+                            const classes = String(r[1] || '').split(',').map(s => s.trim()).filter(Boolean);
+                            newMap.push({ unit, classes });
+                        });
+                        if (newMap.length > 0) config.unitClassMap = newMap;
+                    }
+
+                    if (wb.SheetNames.includes('Cau_Hinh')) {
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets['Cau_Hinh'], { header: 1 });
+                        rows.slice(1).forEach(r => {
+                            if (!r || !r[0]) return;
+                            const k = String(r[0]).trim();
+                            const v = r[1];
+                            if (k in config && v !== undefined) {
+                                config[k] = isNaN(Number(v)) || ['tourName', 'tourDate', 'tourLocation'].includes(k) ? v : Number(v);
+                            }
+                        });
+                    }
+
+                    saveData();
+                    applyConfigToUI();
+                    loadConfigForm();
+                    populateUnitAndClassFilters();
+                    renderAthletes();
+                    renderSchedule();
+                    onSelectDrawEvent();
+                    onSelectResEvent();
+                    showToast('Đã đọc và cập nhật dữ liệu từ Trang tính thành công!');
+                } catch (err) {
+                    showToast('Không thể đọc tệp Trang tính, vui lòng kiểm tra lại!', true);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        async function syncToGoogleSheet(silent = false) {
+            const urlInput = document.getElementById('cfgGoogleSheetUrl');
+            if (urlInput && urlInput.value.trim()) {
+                config.googleSheetUrl = urlInput.value.trim();
+            }
+            if (!config.googleSheetUrl) {
+                config.googleSheetUrl = DEFAULT_CONFIG.googleSheetUrl;
+            }
+            try {
+                updateSheetSyncBadge('Đang lưu lên Google Sheet...', false);
+                const payload = {
+                    sheets: buildSpreadsheetRows(),
+                    rawState: { config, athletes, schedule, draws, results }
+                };
+                await fetch(config.googleSheetUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                updateSheetSyncBadge('Đã lưu lên Google Sheet', true);
+                if (!silent) showToast('Đã lưu toàn bộ dữ liệu lên Google Trang tính thành công!');
+            } catch (e) {
+                updateSheetSyncBadge('Lỗi đồng bộ Sheet', false);
+                if (!silent) showToast('Không thể kết nối tới Google Trang tính!', true);
+            }
+        }
+
+        async function syncFromGoogleSheet(silent = false) {
+            const urlInput = document.getElementById('cfgGoogleSheetUrl');
+            if (urlInput && urlInput.value.trim()) {
+                config.googleSheetUrl = urlInput.value.trim();
+            }
+            if (!config.googleSheetUrl) {
+                config.googleSheetUrl = DEFAULT_CONFIG.googleSheetUrl;
+            }
+            try {
+                updateSheetSyncBadge('Đang tải từ Google Sheet...', false);
+                const res = await fetch(config.googleSheetUrl);
+                const parsed = await res.json();
+                if (parsed && parsed.athletes) {
+                    const keepUrl = config.googleSheetUrl;
+                    const keepAuto = config.autoSyncSheet;
+                    if (parsed.config) config = { ...parsed.config, googleSheetUrl: keepUrl, autoSyncSheet: keepAuto };
+                    athletes = parsed.athletes || athletes;
+                    schedule = parsed.schedule || schedule;
+                    draws = parsed.draws || {};
+                    results = parsed.results || {};
+                    saveData();
+                    applyConfigToUI();
+                    loadConfigForm();
+                    populateUnitAndClassFilters();
+                    renderAthletes();
+                    renderSchedule();
+                    onSelectDrawEvent();
+                    onSelectResEvent();
+                    updateSheetSyncBadge('Đã đồng bộ từ Google Sheet', true);
+                    if (!silent) showToast('Đã tải dữ liệu từ Google Trang tính thành công!');
+                } else {
+                    updateSheetSyncBadge('Sheet chưa có dữ liệu', false);
+                    if (!silent) showToast('Google Trang tính chưa có dữ liệu hệ thống!', true);
+                }
+            } catch (e) {
+                updateSheetSyncBadge('Chờ đồng bộ', false);
+                if (!silent) showToast('Không thể tải dữ liệu từ Google Sheet!', true);
+            }
+        }
+
+        function openGoogleSheetGuideModal() {
+            document.getElementById('googleSheetGuideModal').classList.remove('hidden');
+        }
+        function closeGoogleSheetGuideModal() {
+            document.getElementById('googleSheetGuideModal').classList.add('hidden');
+        }
+        function copyAppsScriptCode() {
+            const code = document.getElementById('appsScriptCodeBlock').innerText;
+            const temp = document.createElement('textarea');
+            temp.value = code;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            temp.remove();
+            showToast('Đã sao chép mã Google Apps Script vào bộ nhớ tạm!');
+        }
+    </script>
+</body>
+</html>
