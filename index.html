@@ -491,6 +491,29 @@
                             <i class="fa-solid fa-check"></i> Lưu cấu hình giải đấu
                         </button>
                     </div>
+
+                    <!-- Mục Bảo mật: Đổi mật khẩu Admin & Trọng tài (Chỉ Admin thấy) -->
+                    <div class="pt-4 border-t border-slate-200 space-y-3">
+                        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-key text-rose-600"></i> Bảo mật: Đổi mật khẩu Admin & Trọng tài
+                        </h3>
+                        <p class="text-xs text-slate-500">Mật khẩu được mã hóa một chiều (Hash) và đồng bộ lên Google Sheet. Không hiển thị ở bất kỳ đâu bên ngoài.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Mật khẩu Admin mới:</label>
+                                <input type="password" id="cfgNewAdminPwd" placeholder="Để trống nếu giữ nguyên..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Mật khẩu Trọng tài mới:</label>
+                                <input type="password" id="cfgNewRefereePwd" placeholder="Để trống nếu giữ nguyên..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <button onclick="updateSecurityPasswords()" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-shield-halved"></i> Cập nhật mật khẩu mới
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Danh mục Đơn vị, Lớp & Sao lưu khôi phục -->
@@ -664,9 +687,9 @@
                     </select>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Mật khẩu xác thực (Mặc định Admin: <code class="text-blue-600 font-bold">admin123</code>, Trọng tài: <code class="text-amber-600 font-bold">tt123</code>):</label>
-                    <input type="password" id="loginPasswordInput" placeholder="Khán giả không cần nhập mật khẩu..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none">
+                <div id="passwordInputWrapper">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Mật khẩu xác thực:</label>
+                    <input type="password" id="loginPasswordInput" placeholder="Nhập mật khẩu được cấp..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
             <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
@@ -839,6 +862,8 @@ function doGet(e) {
             pts1: 11, pts2: 9, pts3: 8, pts4: 7, pts5: 6, pts6: 5, pts7: 4, pts8: 3, pts9: 2, pts10: 1,
             googleSheetUrl: 'https://script.google.com/macros/s/AKfycbynbnh1UVYWOBRX-x8CysBmZGkYKb5ONvjlwffcDJI44Bh5X2B_noe0FOB6scR2N3iB/exec',
             autoSyncSheet: true,
+            adminPwdHash: 'h_3848466f',
+            refereePwdHash: 'h_697ad76',
             unitClassMap: [
                 { unit: 'Cụm_01', classes: ['10A1', '10A2', '10A3'] },
                 { unit: 'Cụm_02', classes: ['11B1', '11B2', '11B3'] },
@@ -846,6 +871,17 @@ function doGet(e) {
                 { unit: 'Cụm_04', classes: ['10A4', '11B4', '12C4'] }
             ]
         };
+
+        // Hàm băm mật khẩu một chiều (không lưu mật khẩu dạng văn bản thuần trong code)
+        function hashSecret(str) {
+            let h = 2166136261;
+            const salted = 'DK2026_SALT_' + str;
+            for (let i = 0; i < salted.length; i++) {
+                h ^= salted.charCodeAt(i);
+                h = Math.imul(h, 16777619);
+            }
+            return 'h_' + (h >>> 0).toString(16);
+        }
 
         const DEFAULT_ATHLETES = [
             { id: 1, bib: '101', name: 'Nguyễn Văn An', cccd: '068208001011', gender: 'Nam', unit: 'Cụm_01', className: '10A1', eventId: '100m_nam' },
@@ -876,6 +912,8 @@ function doGet(e) {
         if (!config.googleSheetUrl) {
             config.googleSheetUrl = DEFAULT_CONFIG.googleSheetUrl;
         }
+        if (!config.adminPwdHash) config.adminPwdHash = DEFAULT_CONFIG.adminPwdHash;
+        if (!config.refereePwdHash) config.refereePwdHash = DEFAULT_CONFIG.refereePwdHash;
         let athletes = JSON.parse(localStorage.getItem('dk_v3_athletes')) || DEFAULT_ATHLETES;
         let schedule = JSON.parse(localStorage.getItem('dk_v3_schedule')) || DEFAULT_SCHEDULE;
         let draws = JSON.parse(localStorage.getItem('dk_v3_draws')) || {};
@@ -995,30 +1033,39 @@ function doGet(e) {
         function onChangeLoginRole() {
             const role = document.getElementById('loginRoleSelect').value;
             const refBox = document.getElementById('refereeEventBox');
+            const pwdWrapper = document.getElementById('passwordInputWrapper');
             if (role === 'referee') {
                 refBox.classList.remove('hidden');
+                if (pwdWrapper) pwdWrapper.classList.remove('hidden');
                 const sel = document.getElementById('loginRefereeEvent');
                 sel.innerHTML = '';
                 AVAILABLE_EVENTS.forEach(ev => {
                     sel.innerHTML += `<option value="${ev.id}">${ev.name}</option>`;
                 });
+            } else if (role === 'admin') {
+                refBox.classList.add('hidden');
+                if (pwdWrapper) pwdWrapper.classList.remove('hidden');
             } else {
                 refBox.classList.add('hidden');
+                if (pwdWrapper) pwdWrapper.classList.add('hidden');
             }
         }
 
         function confirmLoginRole() {
             const role = document.getElementById('loginRoleSelect').value;
             const pwd = document.getElementById('loginPasswordInput').value.trim();
+            const inputHash = hashSecret(pwd);
+            const currentAdminHash = config.adminPwdHash || DEFAULT_CONFIG.adminPwdHash;
+            const currentRefHash = config.refereePwdHash || DEFAULT_CONFIG.refereePwdHash;
             let assignedEvent = '';
 
-            if (role === 'admin' && pwd !== 'admin123') {
-                showToast('Mật khẩu Quản trị viên không đúng (Mặc định: admin123)!', true);
+            if (role === 'admin' && inputHash !== currentAdminHash) {
+                showToast('Mật khẩu Quản trị viên không chính xác!', true);
                 return;
             }
             if (role === 'referee') {
-                if (pwd !== 'tt123' && pwd !== 'admin123') {
-                    showToast('Mật khẩu Trọng tài không đúng (Mặc định: tt123)!', true);
+                if (inputHash !== currentRefHash && inputHash !== currentAdminHash) {
+                    showToast('Mật khẩu Trọng tài không chính xác!', true);
                     return;
                 }
                 assignedEvent = document.getElementById('loginRefereeEvent').value;
@@ -2261,6 +2308,27 @@ function doGet(e) {
             populateUnitAndClassFilters();
             renderTeamStandings();
             showToast('Đã lưu cấu hình giải đấu thành công!');
+        }
+
+        function updateSecurityPasswords() {
+            if (currentUser.role !== 'admin') return;
+            const newAdmin = document.getElementById('cfgNewAdminPwd').value.trim();
+            const newRef = document.getElementById('cfgNewRefereePwd').value.trim();
+
+            if (!newAdmin && !newRef) {
+                showToast('Vui lòng nhập ít nhất 1 mật khẩu mới để cập nhật!', true);
+                return;
+            }
+            if (newAdmin) {
+                config.adminPwdHash = hashSecret(newAdmin);
+                document.getElementById('cfgNewAdminPwd').value = '';
+            }
+            if (newRef) {
+                config.refereePwdHash = hashSecret(newRef);
+                document.getElementById('cfgNewRefereePwd').value = '';
+            }
+            saveData();
+            showToast('Đã mã hóa và cập nhật mật khẩu mới thành công!');
         }
 
         function updateSheetSyncBadge(statusText = null, isOnline = null) {
