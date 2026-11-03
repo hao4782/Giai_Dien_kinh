@@ -264,7 +264,7 @@
                         </div>
                     </div>
                     <div class="flex justify-between items-center text-[10px] text-slate-500 border-t border-dashed border-slate-300 pt-2">
-                        <span id="printCopyrightOwner">© Bản quyền thuộc về Ban Tổ Chức Giải Điền Kinh</span>
+                        <span id="printCopyrightOwner"></span>
                         <span id="printTimestamp">In từ Hệ thống Quản lý Giải Điền Kinh Chuyên Nghiệp (Online)</span>
                     </div>
                 </div>
@@ -307,7 +307,7 @@
                     </div>
                 </div>
 
-                <!-- Khung cấu hình tự động lập danh sách Chung kết (Hiện khi đang ở Vòng loại cho Admin/Trọng tài) -->
+                <!-- Khung cấu hình tự động lập danh sách Chung kết -->
                 <div id="finalQualificationBox" class="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 admin-referee-action">
                     <div class="flex items-start gap-3">
                         <input type="checkbox" id="autoAdvanceCheck" class="w-5 h-5 mt-0.5 text-blue-600 rounded border-amber-400 focus:ring-blue-500" checked>
@@ -328,7 +328,7 @@
                 </div>
             </div>
 
-            <!-- Bảng danh sách thành tích (Chỉ Admin/Trọng tài nhập liệu, Khán giả chỉ xem nếu nội dung đã có kết quả) -->
+            <!-- Bảng danh sách thành tích -->
             <div id="resultInputCardWrapper" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div class="p-4 bg-slate-100 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <h3 class="font-bold text-slate-800 text-sm" id="resTableTitle">Danh sách thành tích VĐV</h3>
@@ -440,16 +440,19 @@
                                 <input type="text" id="cfgTourLocation" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">Đơn vị tổ chức / Bản quyền (Footer):</label>
-                                <input type="text" id="cfgCopyrightOwner" placeholder="VD: Ban Tổ Chức Giải Điền Kinh" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                        <!-- Khung hiển thị Bản quyền Tác giả đã Khóa Cứng (Admin không thể sửa) -->
+                        <div class="p-3.5 bg-slate-900 text-slate-200 rounded-xl border border-slate-700 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-lock text-amber-400 text-base"></i>
+                                <div>
+                                    <p class="text-[11px] text-slate-400 uppercase font-semibold tracking-wider">Bản quyền Hệ thống (Đã khóa bảo vệ bởi Tác giả)</p>
+                                    <p class="text-xs font-bold text-white mt-0.5" id="cfgLockedCopyrightPreview"></p>
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">Tác giả / Đơn vị phát triển hệ thống:</label>
-                                <input type="text" id="cfgAuthorName" placeholder="VD: Tổ Trọng Tài & CNTT Thể Thao" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
+                            <span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded font-semibold whitespace-nowrap">Cố định</span>
                         </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Số làn chạy tiêu chuẩn của sân:</label>
@@ -519,7 +522,7 @@
                         </button>
                     </div>
 
-                    <!-- Mục Bảo mật: Đổi mật khẩu Admin & Trọng tài (Chỉ Admin thấy) -->
+                    <!-- Mục Bảo mật: Đổi mật khẩu Admin & Trọng tài -->
                     <div class="pt-4 border-t border-slate-200 space-y-3">
                         <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
                             <i class="fa-solid fa-key text-rose-600"></i> Bảo mật: Đổi mật khẩu Admin & Trọng tài
@@ -617,7 +620,7 @@
                                     <span class="text-xs font-semibold text-emerald-900">Tự động lưu lên Google Trang tính</span>
                                 </label>
                                 <div class="flex flex-wrap gap-2">
-                                    <button onclick="syncFromGoogleSheet()" class="bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                                    <button onclick="syncFromGoogleSheet(false)" class="bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
                                         <i class="fa-solid fa-cloud-arrow-down"></i> Tải về
                                     </button>
                                     <button onclick="syncToGoogleSheet(false)" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
@@ -633,17 +636,15 @@
 
     </main>
 
-    <!-- Footer Bản quyền Trang trọng & Chuyên nghiệp -->
-    <footer class="bg-slate-900 text-slate-300 border-t border-slate-800 mt-12 no-print">
+    <!-- Footer Bản quyền Trang trọng & Chuyên nghiệp (Đã khóa bảo vệ bởi Tác giả) -->
+    <footer id="protectedAppFooter" class="bg-slate-900 text-slate-300 border-t border-slate-800 mt-12 no-print select-none">
         <div class="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-base shadow">
                     <i class="fa-solid fa-medal"></i>
                 </div>
                 <div>
-                    <p class="font-bold text-white text-sm tracking-tight" id="footerCopyrightText">
-                        © 2026 Bản quyền thuộc về Ban Tổ Chức Giải Điền Kinh Truyền Thống
-                    </p>
+                    <p class="font-bold text-white text-sm tracking-tight" id="footerCopyrightText"></p>
                     <p class="text-slate-400 mt-0.5">
                         Hệ thống Quản lý Giải Điền Kinh Chuyên Nghiệp (Seeding, Call Room, Live Results & Cloud Sync)
                     </p>
@@ -651,11 +652,11 @@
             </div>
             <div class="flex flex-col md:items-end text-center md:text-right gap-1">
                 <div class="inline-flex items-center gap-2 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded-xl">
-                    <i class="fa-solid fa-code text-emerald-400"></i>
-                    <span>Phát triển & Vận hành bởi: <strong class="text-white" id="footerAuthorName">Ban Chuyên Môn & CNTT Thể Thao</strong></span>
+                    <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+                    <span>Tác giả & Bản quyền phần mềm: <strong class="text-amber-400" id="footerAuthorName"></strong></span>
                 </div>
                 <p class="text-[11px] text-slate-400">
-                    Phiên bản Pro v3.5 — Bảo lưu mọi quyền (All Rights Reserved). Nghiêm cấm sao chép trái phép.
+                    Phiên bản Pro v3.5 — Bảo lưu mọi quyền (All Rights Reserved). Nghiêm cấm sao chép hoặc chỉnh sửa bản quyền.
                 </p>
             </div>
         </div>
@@ -717,7 +718,7 @@
     </div>
 
     <!-- Modal Đăng nhập / Chọn Phân quyền -->
-    <div id="loginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="loginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5">
             <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
@@ -894,6 +895,11 @@ function doGet(e) {
 
     <!-- JavaScript Application Logic -->
     <script>
+        const IMMUTABLE_AUTHOR_COPYRIGHT = Object.freeze({
+            OWNER_COPYRIGHT: 'Bản quyền phần mềm thuộc về Tác giả hệ thống',
+            AUTHOR_NAME: 'Tác giả Phát triển & CNTT Thể Thao'
+        });
+
         const AVAILABLE_EVENTS = [
             { id: '100m_nam', name: 'Chạy 100m Nam', type: 'track', unitType: 'time', defaultMode: 'heat_and_lane' },
             { id: '100m_nu', name: 'Chạy 100m Nữ', type: 'track', unitType: 'time', defaultMode: 'heat_and_lane' },
@@ -912,8 +918,6 @@ function doGet(e) {
             tourName: 'Giải Điền Kinh Học Sinh Truyền Thống Năm 2026',
             tourDate: '10/06/2026 - 12/06/2026',
             tourLocation: 'Sân vận động Trung tâm',
-            copyrightOwner: 'Ban Tổ Chức Giải Điền Kinh Học Sinh Truyền Thống',
-            authorName: 'Ban Chuyên Môn & CNTT Thể Thao',
             trackLanes: 8,
             defaultFinalists: 8,
             pts1: 11, pts2: 9, pts3: 8, pts4: 7, pts5: 6, pts6: 5, pts7: 4, pts8: 3, pts9: 2, pts10: 1,
@@ -929,7 +933,6 @@ function doGet(e) {
             ]
         };
 
-        // Hàm băm mật khẩu một chiều (không lưu mật khẩu dạng văn bản thuần trong code)
         function hashSecret(str) {
             let h = 2166136261;
             const salted = 'DK2026_SALT_' + str;
@@ -965,35 +968,68 @@ function doGet(e) {
             { id: 4, eventId: 'nhay_xa_nam', round: 'Chung kết', time: '2026-06-10T08:30', location: 'Hố nhảy số 1', status: 'Sắp diễn ra' }
         ];
 
-        let config = JSON.parse(localStorage.getItem('dk_v3_config')) || DEFAULT_CONFIG;
+        function safeParseStorage(key, fallback) {
+            try {
+                const raw = localStorage.getItem(key);
+                return raw ? JSON.parse(raw) : fallback;
+            } catch (e) {
+                return fallback;
+            }
+        }
+
+        let config = safeParseStorage('dk_v3_config', DEFAULT_CONFIG);
         if (!config.googleSheetUrl) config.googleSheetUrl = DEFAULT_CONFIG.googleSheetUrl;
         if (!config.adminPwdHash) config.adminPwdHash = DEFAULT_CONFIG.adminPwdHash;
         if (!config.refereePwdHash) config.refereePwdHash = DEFAULT_CONFIG.refereePwdHash;
-        if (!config.copyrightOwner) config.copyrightOwner = DEFAULT_CONFIG.copyrightOwner;
-        if (!config.authorName) config.authorName = DEFAULT_CONFIG.authorName;
 
-        let athletes = JSON.parse(localStorage.getItem('dk_v3_athletes')) || DEFAULT_ATHLETES;
-        let schedule = JSON.parse(localStorage.getItem('dk_v3_schedule')) || DEFAULT_SCHEDULE;
-        let draws = JSON.parse(localStorage.getItem('dk_v3_draws')) || {};
-        let results = JSON.parse(localStorage.getItem('dk_v3_results')) || {};
-        // Mặc định khi truy cập từ link GitHub trên thiết bị lạ sẽ ở quyền Khán giả (viewer) để an toàn dữ liệu
-        let currentUser = JSON.parse(localStorage.getItem('dk_v3_user')) || { role: 'viewer', assignedEvent: '' };
+        let athletes = safeParseStorage('dk_v3_athletes', DEFAULT_ATHLETES);
+        let schedule = safeParseStorage('dk_v3_schedule', DEFAULT_SCHEDULE);
+        let draws = safeParseStorage('dk_v3_draws', {});
+        let results = safeParseStorage('dk_v3_results', {});
+        let currentUser = safeParseStorage('dk_v3_user', { role: 'viewer', assignedEvent: '' });
 
         function saveData() {
-            localStorage.setItem('dk_v3_config', JSON.stringify(config));
-            localStorage.setItem('dk_v3_athletes', JSON.stringify(athletes));
-            localStorage.setItem('dk_v3_schedule', JSON.stringify(schedule));
-            localStorage.setItem('dk_v3_draws', JSON.stringify(draws));
-            localStorage.setItem('dk_v3_results', JSON.stringify(results));
-            localStorage.setItem('dk_v3_user', JSON.stringify(currentUser));
+            try {
+                localStorage.setItem('dk_v3_config', JSON.stringify(config));
+                localStorage.setItem('dk_v3_athletes', JSON.stringify(athletes));
+                localStorage.setItem('dk_v3_schedule', JSON.stringify(schedule));
+                localStorage.setItem('dk_v3_draws', JSON.stringify(draws));
+                localStorage.setItem('dk_v3_results', JSON.stringify(results));
+                localStorage.setItem('dk_v3_user', JSON.stringify(currentUser));
+            } catch (err) {
+                console.warn('LocalStorage error:', err);
+            }
             if (config.autoSyncSheet && config.googleSheetUrl && currentUser.role !== 'viewer') {
                 syncToGoogleSheet(true);
             }
         }
 
-        window.onload = function() {
+        function enforceImmutableCopyright() {
+            const yearNow = new Date().getFullYear();
+            const expectedOwnerText = `© ${yearNow} ${IMMUTABLE_AUTHOR_COPYRIGHT.OWNER_COPYRIGHT}`;
+            const expectedAuthorText = IMMUTABLE_AUTHOR_COPYRIGHT.AUTHOR_NAME;
+
+            const footerOwner = document.getElementById('footerCopyrightText');
+            const footerAuthor = document.getElementById('footerAuthorName');
+            const cfgPreview = document.getElementById('cfgLockedCopyrightPreview');
+
+            if (footerOwner && footerOwner.innerText !== expectedOwnerText) {
+                footerOwner.innerText = expectedOwnerText;
+            }
+            if (footerAuthor && footerAuthor.innerText !== expectedAuthorText) {
+                footerAuthor.innerText = expectedAuthorText;
+            }
+            if (cfgPreview) {
+                cfgPreview.innerText = `${expectedOwnerText} — Tác giả: ${expectedAuthorText}`;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
             const loginModal = document.getElementById('loginModal');
             if (loginModal) loginModal.classList.add('hidden');
+
+            enforceImmutableCopyright();
+            setInterval(enforceImmutableCopyright, 2000);
 
             applyConfigToUI();
             populateEventDropdowns();
@@ -1007,7 +1043,7 @@ function doGet(e) {
             if (config.googleSheetUrl) {
                 syncFromGoogleSheet(true);
             }
-        };
+        });
 
         function applyUserRolePermissions() {
             const roleBadge = document.getElementById('userRoleBadge');
@@ -1025,7 +1061,7 @@ function doGet(e) {
                 const evObj = AVAILABLE_EVENTS.find(e => e.id === currentUser.assignedEvent);
                 nameDisplay.innerText = `Trọng tài: ${evObj ? evObj.name : 'Chưa chọn'}`;
                 if(resultsLabel) resultsLabel.innerText = '4. Nhập thành tích & Xếp hạng';
-            } else if (currentUser.role === 'viewer') {
+            } else {
                 roleBadge.innerText = 'Khán giả';
                 roleBadge.className = 'text-xs font-bold px-2 py-0.5 rounded bg-emerald-600 text-white';
                 nameDisplay.innerText = 'Người xem';
@@ -1182,6 +1218,7 @@ function doGet(e) {
             const toast = document.getElementById('toast');
             const msg = document.getElementById('toastMessage');
             const icon = document.getElementById('toastIcon');
+            if (!toast || !msg || !icon) return;
             msg.innerText = message;
             icon.className = isError ? 'fa-solid fa-circle-exclamation text-rose-400 text-lg' : 'fa-solid fa-circle-check text-emerald-400 text-lg';
             toast.classList.remove('translate-y-20', 'opacity-0');
@@ -1721,7 +1758,7 @@ function doGet(e) {
             const printOwner = document.getElementById('printCopyrightOwner');
             if(printTourTitle) printTourTitle.innerText = config.tourName;
             if(printSubTitle) printSubTitle.innerText = `Nội dung: ${evObj ? evObj.name : ''} — Vòng: ${round}`;
-            if(printOwner) printOwner.innerText = `© Bản quyền thuộc về ${config.copyrightOwner || DEFAULT_CONFIG.copyrightOwner} | Phát triển bởi: ${config.authorName || DEFAULT_CONFIG.authorName}`;
+            if(printOwner) printOwner.innerText = `© ${IMMUTABLE_AUTHOR_COPYRIGHT.OWNER_COPYRIGHT} | Tác giả: ${IMMUTABLE_AUTHOR_COPYRIGHT.AUTHOR_NAME}`;
 
             const data = draws[key];
             if(!data || data.length === 0) {
@@ -1882,6 +1919,7 @@ function doGet(e) {
             tbody.innerHTML = '';
             if(listAthletes.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">Không có vận động viên nào đăng ký vòng thi đấu này.</td></tr>`;
+                renderRankingDisplay([], isPublic);
                 return;
             }
 
@@ -2193,15 +2231,7 @@ function doGet(e) {
                 <span><i class="fa-solid fa-location-dot mr-1"></i> ${config.tourLocation}</span>
                 <span class="bg-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Sân ${config.trackLanes} làn chuẩn</span>
             `;
-            const footerOwner = document.getElementById('footerCopyrightText');
-            const footerAuthor = document.getElementById('footerAuthorName');
-            const yearNow = new Date().getFullYear();
-            if (footerOwner) {
-                footerOwner.innerText = `© ${yearNow} Bản quyền thuộc về ${config.copyrightOwner || DEFAULT_CONFIG.copyrightOwner}`;
-            }
-            if (footerAuthor) {
-                footerAuthor.innerText = config.authorName || DEFAULT_CONFIG.authorName;
-            }
+            enforceImmutableCopyright();
         }
 
         function renderUnitClassMappingUI() {
@@ -2318,10 +2348,7 @@ function doGet(e) {
             document.getElementById('cfgTourName').value = config.tourName || '';
             document.getElementById('cfgTourDate').value = config.tourDate || '';
             document.getElementById('cfgTourLocation').value = config.tourLocation || '';
-            const ownerEl = document.getElementById('cfgCopyrightOwner');
-            if (ownerEl) ownerEl.value = config.copyrightOwner || DEFAULT_CONFIG.copyrightOwner;
-            const authorEl = document.getElementById('cfgAuthorName');
-            if (authorEl) authorEl.value = config.authorName || DEFAULT_CONFIG.authorName;
+            enforceImmutableCopyright();
             document.getElementById('cfgTrackLanes').value = config.trackLanes || 8;
             document.getElementById('cfgDefaultFinalists').value = config.defaultFinalists || 8;
             document.getElementById('cfgPts1').value = config.pts1 !== undefined ? config.pts1 : 11;
@@ -2347,10 +2374,6 @@ function doGet(e) {
             config.tourName = document.getElementById('cfgTourName').value.trim() || DEFAULT_CONFIG.tourName;
             config.tourDate = document.getElementById('cfgTourDate').value.trim() || DEFAULT_CONFIG.tourDate;
             config.tourLocation = document.getElementById('cfgTourLocation').value.trim() || DEFAULT_CONFIG.tourLocation;
-            const ownerEl = document.getElementById('cfgCopyrightOwner');
-            if (ownerEl) config.copyrightOwner = ownerEl.value.trim() || DEFAULT_CONFIG.copyrightOwner;
-            const authorEl = document.getElementById('cfgAuthorName');
-            if (authorEl) config.authorName = authorEl.value.trim() || DEFAULT_CONFIG.authorName;
             config.trackLanes = parseInt(document.getElementById('cfgTrackLanes').value) || 8;
             config.defaultFinalists = parseInt(document.getElementById('cfgDefaultFinalists').value) || 8;
             
@@ -2385,7 +2408,7 @@ function doGet(e) {
             renderUnitClassMappingUI();
             populateUnitAndClassFilters();
             renderTeamStandings();
-            showToast('Đã lưu cấu hình giải đấu & thông tin bản quyền thành công!');
+            showToast('Đã lưu cấu hình giải đấu thành công!');
         }
 
         function updateSecurityPasswords() {
@@ -2497,8 +2520,6 @@ function doGet(e) {
                 ['tourName', config.tourName],
                 ['tourDate', config.tourDate],
                 ['tourLocation', config.tourLocation],
-                ['copyrightOwner', config.copyrightOwner || DEFAULT_CONFIG.copyrightOwner],
-                ['authorName', config.authorName || DEFAULT_CONFIG.authorName],
                 ['trackLanes', config.trackLanes],
                 ['defaultFinalists', config.defaultFinalists],
                 ['pts1', config.pts1], ['pts2', config.pts2], ['pts3', config.pts3], ['pts4', config.pts4], ['pts5', config.pts5],
@@ -2676,8 +2697,9 @@ function doGet(e) {
                             if (!r || !r[0]) return;
                             const k = String(r[0]).trim();
                             const v = r[1];
+                            if (k === 'copyrightOwner' || k === 'authorName') return;
                             if (k in config && v !== undefined) {
-                                config[k] = isNaN(Number(v)) || ['tourName', 'tourDate', 'tourLocation', 'copyrightOwner', 'authorName'].includes(k) ? v : Number(v);
+                                config[k] = isNaN(Number(v)) || ['tourName', 'tourDate', 'tourLocation'].includes(k) ? v : Number(v);
                             }
                         });
                     }
@@ -2722,7 +2744,7 @@ function doGet(e) {
                 updateSheetSyncBadge('Đã lưu lên Google Sheet', true);
                 if (!silent) showToast('Đã lưu toàn bộ dữ liệu lên Google Trang tính thành công!');
             } catch (e) {
-                updateSheetSyncBadge('Lỗi đồng bộ Sheet', false);
+                updateSheetSyncBadge('Chế độ Ngoại tuyến (Local)', false);
                 if (!silent) showToast('Không thể kết nối tới Google Trang tính!', true);
             }
         }
@@ -2737,12 +2759,18 @@ function doGet(e) {
             }
             try {
                 updateSheetSyncBadge('Đang tải từ Google Sheet...', false);
-                const res = await fetch(config.googleSheetUrl);
-                const parsed = await res.json();
+                const res = await fetch(config.googleSheetUrl, { method: 'GET', redirect: 'follow' });
+                if (!res.ok) throw new Error('Network response was not ok');
+                const textData = await res.text();
+                const parsed = textData ? JSON.parse(textData) : null;
                 if (parsed && parsed.athletes) {
                     const keepUrl = config.googleSheetUrl;
                     const keepAuto = config.autoSyncSheet;
-                    if (parsed.config) config = { ...parsed.config, googleSheetUrl: keepUrl, autoSyncSheet: keepAuto };
+                    if (parsed.config) {
+                        delete parsed.config.copyrightOwner;
+                        delete parsed.config.authorName;
+                        config = { ...parsed.config, googleSheetUrl: keepUrl, autoSyncSheet: keepAuto };
+                    }
                     athletes = parsed.athletes || athletes;
                     schedule = parsed.schedule || schedule;
                     draws = parsed.draws || {};
@@ -2758,12 +2786,12 @@ function doGet(e) {
                     updateSheetSyncBadge('Đã đồng bộ từ Google Sheet', true);
                     if (!silent) showToast('Đã tải dữ liệu từ Google Trang tính thành công!');
                 } else {
-                    updateSheetSyncBadge('Sheet chưa có dữ liệu', false);
-                    if (!silent) showToast('Google Trang tính chưa có dữ liệu hệ thống!', true);
+                    updateSheetSyncBadge('Sẵn sàng đồng bộ Sheet', true);
+                    if (!silent) showToast('Google Trang tính hiện chưa có dữ liệu lưu trữ!', false);
                 }
             } catch (e) {
-                updateSheetSyncBadge('Chờ đồng bộ', false);
-                if (!silent) showToast('Không thể tải dữ liệu từ Google Sheet!', true);
+                updateSheetSyncBadge('Hoạt động Cục bộ / Sẵn sàng', true);
+                if (!silent) showToast('Đang sử dụng dữ liệu cục bộ (Kiểm tra quyền Anyone trên Apps Script nếu cần).', true);
             }
         }
 
