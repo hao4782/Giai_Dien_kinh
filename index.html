@@ -243,13 +243,30 @@
 
             <!-- Khu vực hiển thị kết quả bốc thăm & In ấn -->
             <div id="printableArea" class="space-y-4">
-                <div class="hidden print:block text-center mb-6 border-b pb-4">
+                <div class="hidden print:block text-center mb-6 border-b border-slate-300 pb-4">
                     <h2 id="printTourTitle" class="text-base font-bold uppercase text-slate-700"></h2>
-                    <h1 class="text-xl font-bold uppercase mt-1">DANH SÁCH BỐC THĂM ĐỢT & Ô CHẠY (START LIST)</h1>
+                    <h1 class="text-xl font-bold uppercase mt-1">BIÊN BẢN BỐC THĂM ĐỢT & Ô CHẠY (START LIST)</h1>
                     <p id="printSubTitle" class="text-sm font-semibold text-slate-600 mt-1"></p>
                 </div>
                 <div id="drawResultContainer" class="space-y-4">
                     <!-- Rendered by JS -->
+                </div>
+                <!-- Chân trang Bản quyền & Chữ ký trên Biên bản In ấn -->
+                <div class="hidden print:block mt-8 pt-4 border-t border-slate-300 text-xs text-slate-700">
+                    <div class="grid grid-cols-2 gap-8 text-center mb-14">
+                        <div>
+                            <p class="font-bold uppercase">THƯ KÝ / TỔ TRỌNG TÀI</p>
+                            <p class="italic text-[11px] text-slate-500">(Ký và ghi rõ họ tên)</p>
+                        </div>
+                        <div>
+                            <p class="font-bold uppercase">TM. BAN TỔ CHỨC GIẢI</p>
+                            <p class="italic text-[11px] text-slate-500">(Ký tên và đóng dấu)</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px] text-slate-500 border-t border-dashed border-slate-300 pt-2">
+                        <span id="printCopyrightOwner">© Bản quyền thuộc về Ban Tổ Chức Giải Điền Kinh</span>
+                        <span id="printTimestamp">In từ Hệ thống Quản lý Giải Điền Kinh Chuyên Nghiệp (Online)</span>
+                    </div>
                 </div>
             </div>
         </section>
@@ -421,6 +438,16 @@
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Địa điểm tổ chức:</label>
                                 <input type="text" id="cfgTourLocation" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Đơn vị tổ chức / Bản quyền (Footer):</label>
+                                <input type="text" id="cfgCopyrightOwner" placeholder="VD: Ban Tổ Chức Giải Điền Kinh" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Tác giả / Đơn vị phát triển hệ thống:</label>
+                                <input type="text" id="cfgAuthorName" placeholder="VD: Tổ Trọng Tài & CNTT Thể Thao" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                             </div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -605,6 +632,34 @@
         </section>
 
     </main>
+
+    <!-- Footer Bản quyền Trang trọng & Chuyên nghiệp -->
+    <footer class="bg-slate-900 text-slate-300 border-t border-slate-800 mt-12 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-base shadow">
+                    <i class="fa-solid fa-medal"></i>
+                </div>
+                <div>
+                    <p class="font-bold text-white text-sm tracking-tight" id="footerCopyrightText">
+                        © 2026 Bản quyền thuộc về Ban Tổ Chức Giải Điền Kinh Truyền Thống
+                    </p>
+                    <p class="text-slate-400 mt-0.5">
+                        Hệ thống Quản lý Giải Điền Kinh Chuyên Nghiệp (Seeding, Call Room, Live Results & Cloud Sync)
+                    </p>
+                </div>
+            </div>
+            <div class="flex flex-col md:items-end text-center md:text-right gap-1">
+                <div class="inline-flex items-center gap-2 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded-xl">
+                    <i class="fa-solid fa-code text-emerald-400"></i>
+                    <span>Phát triển & Vận hành bởi: <strong class="text-white" id="footerAuthorName">Ban Chuyên Môn & CNTT Thể Thao</strong></span>
+                </div>
+                <p class="text-[11px] text-slate-400">
+                    Phiên bản Pro v3.5 — Bảo lưu mọi quyền (All Rights Reserved). Nghiêm cấm sao chép trái phép.
+                </p>
+            </div>
+        </div>
+    </footer>
 
     <!-- Modal Thêm/Sửa VĐV -->
     <div id="athleteModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -857,6 +912,8 @@ function doGet(e) {
             tourName: 'Giải Điền Kinh Học Sinh Truyền Thống Năm 2026',
             tourDate: '10/06/2026 - 12/06/2026',
             tourLocation: 'Sân vận động Trung tâm',
+            copyrightOwner: 'Ban Tổ Chức Giải Điền Kinh Học Sinh Truyền Thống',
+            authorName: 'Ban Chuyên Môn & CNTT Thể Thao',
             trackLanes: 8,
             defaultFinalists: 8,
             pts1: 11, pts2: 9, pts3: 8, pts4: 7, pts5: 6, pts6: 5, pts7: 4, pts8: 3, pts9: 2, pts10: 1,
@@ -909,11 +966,12 @@ function doGet(e) {
         ];
 
         let config = JSON.parse(localStorage.getItem('dk_v3_config')) || DEFAULT_CONFIG;
-        if (!config.googleSheetUrl) {
-            config.googleSheetUrl = DEFAULT_CONFIG.googleSheetUrl;
-        }
+        if (!config.googleSheetUrl) config.googleSheetUrl = DEFAULT_CONFIG.googleSheetUrl;
         if (!config.adminPwdHash) config.adminPwdHash = DEFAULT_CONFIG.adminPwdHash;
         if (!config.refereePwdHash) config.refereePwdHash = DEFAULT_CONFIG.refereePwdHash;
+        if (!config.copyrightOwner) config.copyrightOwner = DEFAULT_CONFIG.copyrightOwner;
+        if (!config.authorName) config.authorName = DEFAULT_CONFIG.authorName;
+
         let athletes = JSON.parse(localStorage.getItem('dk_v3_athletes')) || DEFAULT_ATHLETES;
         let schedule = JSON.parse(localStorage.getItem('dk_v3_schedule')) || DEFAULT_SCHEDULE;
         let draws = JSON.parse(localStorage.getItem('dk_v3_draws')) || {};
@@ -934,7 +992,6 @@ function doGet(e) {
         }
 
         window.onload = function() {
-            // Đóng modal đăng nhập khi vừa vào trang để khán giả xem được ngay
             const loginModal = document.getElementById('loginModal');
             if (loginModal) loginModal.classList.add('hidden');
 
@@ -947,7 +1004,6 @@ function doGet(e) {
             initDrawTab();
             initResultsTab();
             updateSheetSyncBadge();
-            // Tự động tải dữ liệu mới nhất từ Google Sheet khi mở web trên GitHub Pages
             if (config.googleSheetUrl) {
                 syncFromGoogleSheet(true);
             }
@@ -997,8 +1053,6 @@ function doGet(e) {
                 else el.classList.remove('hidden');
             });
 
-            // Viewer restriction: hide Tab 3 (Bốc thăm) entirely for viewers per request
-            // Viewer restriction: Allow viewers to see Tab 3 (Bốc thăm) in read-only mode per requirements
             document.querySelectorAll('.viewer-hide-draw').forEach(el => {
                 el.classList.remove('hidden');
             });
@@ -1664,8 +1718,10 @@ function doGet(e) {
 
             const printTourTitle = document.getElementById('printTourTitle');
             const printSubTitle = document.getElementById('printSubTitle');
+            const printOwner = document.getElementById('printCopyrightOwner');
             if(printTourTitle) printTourTitle.innerText = config.tourName;
             if(printSubTitle) printSubTitle.innerText = `Nội dung: ${evObj ? evObj.name : ''} — Vòng: ${round}`;
+            if(printOwner) printOwner.innerText = `© Bản quyền thuộc về ${config.copyrightOwner || DEFAULT_CONFIG.copyrightOwner} | Phát triển bởi: ${config.authorName || DEFAULT_CONFIG.authorName}`;
 
             const data = draws[key];
             if(!data || data.length === 0) {
@@ -1736,6 +1792,11 @@ function doGet(e) {
             if (!data || data.length === 0) {
                 showToast('Chưa có dữ liệu bốc thăm để in biên bản!', true);
                 return;
+            }
+            const printTimeEl = document.getElementById('printTimestamp');
+            if (printTimeEl) {
+                const nowStr = new Date().toLocaleString('vi-VN');
+                printTimeEl.innerText = `In lúc: ${nowStr} — Hệ thống Quản lý Giải Điền Kinh Chuyên Nghiệp`;
             }
             window.print();
         }
@@ -2132,6 +2193,15 @@ function doGet(e) {
                 <span><i class="fa-solid fa-location-dot mr-1"></i> ${config.tourLocation}</span>
                 <span class="bg-blue-800 px-2 py-0.5 rounded text-xs font-semibold">Sân ${config.trackLanes} làn chuẩn</span>
             `;
+            const footerOwner = document.getElementById('footerCopyrightText');
+            const footerAuthor = document.getElementById('footerAuthorName');
+            const yearNow = new Date().getFullYear();
+            if (footerOwner) {
+                footerOwner.innerText = `© ${yearNow} Bản quyền thuộc về ${config.copyrightOwner || DEFAULT_CONFIG.copyrightOwner}`;
+            }
+            if (footerAuthor) {
+                footerAuthor.innerText = config.authorName || DEFAULT_CONFIG.authorName;
+            }
         }
 
         function renderUnitClassMappingUI() {
@@ -2248,6 +2318,10 @@ function doGet(e) {
             document.getElementById('cfgTourName').value = config.tourName || '';
             document.getElementById('cfgTourDate').value = config.tourDate || '';
             document.getElementById('cfgTourLocation').value = config.tourLocation || '';
+            const ownerEl = document.getElementById('cfgCopyrightOwner');
+            if (ownerEl) ownerEl.value = config.copyrightOwner || DEFAULT_CONFIG.copyrightOwner;
+            const authorEl = document.getElementById('cfgAuthorName');
+            if (authorEl) authorEl.value = config.authorName || DEFAULT_CONFIG.authorName;
             document.getElementById('cfgTrackLanes').value = config.trackLanes || 8;
             document.getElementById('cfgDefaultFinalists').value = config.defaultFinalists || 8;
             document.getElementById('cfgPts1').value = config.pts1 !== undefined ? config.pts1 : 11;
@@ -2273,6 +2347,10 @@ function doGet(e) {
             config.tourName = document.getElementById('cfgTourName').value.trim() || DEFAULT_CONFIG.tourName;
             config.tourDate = document.getElementById('cfgTourDate').value.trim() || DEFAULT_CONFIG.tourDate;
             config.tourLocation = document.getElementById('cfgTourLocation').value.trim() || DEFAULT_CONFIG.tourLocation;
+            const ownerEl = document.getElementById('cfgCopyrightOwner');
+            if (ownerEl) config.copyrightOwner = ownerEl.value.trim() || DEFAULT_CONFIG.copyrightOwner;
+            const authorEl = document.getElementById('cfgAuthorName');
+            if (authorEl) config.authorName = authorEl.value.trim() || DEFAULT_CONFIG.authorName;
             config.trackLanes = parseInt(document.getElementById('cfgTrackLanes').value) || 8;
             config.defaultFinalists = parseInt(document.getElementById('cfgDefaultFinalists').value) || 8;
             
@@ -2307,7 +2385,7 @@ function doGet(e) {
             renderUnitClassMappingUI();
             populateUnitAndClassFilters();
             renderTeamStandings();
-            showToast('Đã lưu cấu hình giải đấu thành công!');
+            showToast('Đã lưu cấu hình giải đấu & thông tin bản quyền thành công!');
         }
 
         function updateSecurityPasswords() {
@@ -2419,6 +2497,8 @@ function doGet(e) {
                 ['tourName', config.tourName],
                 ['tourDate', config.tourDate],
                 ['tourLocation', config.tourLocation],
+                ['copyrightOwner', config.copyrightOwner || DEFAULT_CONFIG.copyrightOwner],
+                ['authorName', config.authorName || DEFAULT_CONFIG.authorName],
                 ['trackLanes', config.trackLanes],
                 ['defaultFinalists', config.defaultFinalists],
                 ['pts1', config.pts1], ['pts2', config.pts2], ['pts3', config.pts3], ['pts4', config.pts4], ['pts5', config.pts5],
@@ -2597,7 +2677,7 @@ function doGet(e) {
                             const k = String(r[0]).trim();
                             const v = r[1];
                             if (k in config && v !== undefined) {
-                                config[k] = isNaN(Number(v)) || ['tourName', 'tourDate', 'tourLocation'].includes(k) ? v : Number(v);
+                                config[k] = isNaN(Number(v)) || ['tourName', 'tourDate', 'tourLocation', 'copyrightOwner', 'authorName'].includes(k) ? v : Number(v);
                             }
                         });
                     }
